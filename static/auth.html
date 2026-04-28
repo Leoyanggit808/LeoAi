@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeoAI — 登录</title>
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; }
+
+    /* ===== BACKGROUND ===== */
+    body {
+      background: #060612;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ===== AURORA (static gradient, no blur) ===== */
+    .aurora {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .aurora::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 65% 55% at 5% 5%, rgba(99,102,241,0.22) 0%, transparent 70%),
+        radial-gradient(ellipse 55% 45% at 95% 90%, rgba(6,182,212,0.16) 0%, transparent 70%),
+        radial-gradient(ellipse 45% 40% at 60% 40%, rgba(168,85,247,0.15) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 35% at 75% 15%, rgba(245,158,11,0.1) 0%, transparent 70%);
+    }
+
+    /* Noise texture */
+    .noise {
+      position: fixed; inset: 0; z-index: 1; opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 128px;
+    }
+
+    /* Grid */
+    .grid-overlay {
+      position: fixed; inset: 0; z-index: 1;
+      background-image:
+        linear-gradient(rgba(99,102,241,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* ===== MAIN LAYOUT ===== */
+    .page-wrapper {
+      position: relative; z-index: 10;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* ===== CARD ===== */
+    .card {
+      width: 100%;
+      max-width: 440px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 28px;
+      padding: 44px 40px;
+      backdrop-filter: blur(32px);
+      -webkit-backdrop-filter: blur(32px);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.04) inset,
+        0 40px 80px rgba(0,0,0,0.5),
+        0 0 120px rgba(99,102,241,0.08);
+      animation: cardIn 0.7s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(30px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* ===== LOGO ===== */
+    .logo-area { text-align: center; margin-bottom: 36px; }
+    .logo-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899, #f59e0b);
+      background-size: 300% 300%;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 40px rgba(99,102,241,0.5);
+      animation: logoGlow 4s ease-in-out infinite, logoGradient 6s ease infinite;
+      position: relative;
+    }
+    .logo-icon::after {
+      content: '';
+      position: absolute; inset: -2px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
+      z-index: -1;
+      filter: blur(12px);
+      opacity: 0.5;
+      animation: logoGlow 4s ease-in-out infinite;
+    }
+    @keyframes logoGlow {
+      0%, 100% { box-shadow: 0 8px 40px rgba(99,102,241,0.5); }
+      50% { box-shadow: 0 8px 60px rgba(139,92,246,0.7), 0 0 80px rgba(99,102,241,0.3); }
+    }
+    @keyframes logoGradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .logo-icon svg { width: 28px; height: 28px; fill: white; }
+    .logo-title {
+      font-size: 24px; font-weight: 800;
+      background: linear-gradient(90deg, #fff 0%, #a5b4fc 50%, #c4b5fd 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.8px;
+    }
+    .logo-sub { font-size: 13px; color: rgba(255,255,255,0.35); margin-top: 5px; letter-spacing: 0.3px; }
+
+    /* ===== TABS ===== */
+    .tab-bar {
+      display: flex;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 4px;
+      margin-bottom: 32px;
+    }
+    .tab-btn {
+      flex: 1; padding: 10px 0;
+      border: none; background: transparent;
+      color: rgba(255,255,255,0.4);
+      font-size: 14px; font-weight: 600;
+      border-radius: 11px; cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+      position: relative; overflow: hidden;
+    }
+    .tab-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85));
+      border-radius: 11px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .tab-btn.active {
+      color: white;
+      box-shadow: 0 2px 16px rgba(99,102,241,0.4);
+    }
+    .tab-btn.active::before { opacity: 1; }
+    .tab-btn span { position: relative; z-index: 1; }
+
+    /* ===== FORMS ===== */
+    .form-panel { display: none; animation: fadeIn 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+    .form-panel.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .form-group { margin-bottom: 18px; }
+    .form-label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11.5px; font-weight: 700;
+      color: rgba(255,255,255,0.45);
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .form-label .label-icon { opacity: 0.5; }
+    .form-input-wrap { position: relative; }
+    .form-input {
+      width: 100%; padding: 13px 16px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      color: white; font-size: 14.5px;
+      outline: none;
+      transition: all 0.25s ease;
+      font-family: inherit;
+    }
+    .form-input::placeholder { color: rgba(255,255,255,0.22); }
+    .form-input:focus {
+      border-color: rgba(99,102,241,0.7);
+      background: rgba(99,102,241,0.08);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15), 0 0 20px rgba(99,102,241,0.1);
+    }
+    .form-input.error {
+      border-color: rgba(239,68,68,0.6);
+      background: rgba(239,68,68,0.06);
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.1);
+    }
+
+    /* ===== BUTTON ===== */
+    .btn-primary {
+      width: 100%; padding: 14px 0; margin-top: 6px;
+      border: none; border-radius: 13px;
+      font-size: 15px; font-weight: 700;
+      color: white; cursor: pointer;
+      position: relative; overflow: hidden;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+      background-size: 200% 200%;
+      animation: gradientShift 4s ease infinite;
+      box-shadow: 0 4px 24px rgba(99,102,241,0.4), 0 0 0 1px rgba(255,255,255,0.05) inset;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      letter-spacing: 0.3px;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(99,102,241,0.55), 0 0 0 1px rgba(255,255,255,0.1) inset;
+    }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    /* shimmer */
+    .btn-primary::after {
+      content: '';
+      position: absolute; top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+      animation: shimmer 2.8s infinite;
+    }
+    @keyframes shimmer { 0%{left:-100%;} 60%{left:200%;} 100%{left:200%;} }
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    /* ===== STATUS MSG ===== */
+    .status-msg {
+      margin-top: 14px; padding: 12px 16px;
+      border-radius: 12px; font-size: 13.5px;
+      text-align: center; display: none;
+      border: 1px solid transparent;
+    }
+    .status-msg.success {
+      display: block;
+      background: rgba(34,197,94,0.1);
+      border-color: rgba(34,197,94,0.2);
+      color: #86efac;
+    }
+    .status-msg.error {
+      display: block;
+      background: rgba(239,68,68,0.1);
+      border-color: rgba(239,68,68,0.2);
+      color: #fca5a5;
+    }
+    .status-msg.loading {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      background: rgba(99,102,241,0.1);
+      border-color: rgba(99,102,241,0.2);
+      color: #a5b4fc;
+    }
+
+    /* ===== SPINNER ===== */
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== DIVIDER ===== */
+    .divider { text-align: center; font-size: 12.5px; color: rgba(255,255,255,0.2); margin: 20px 0 0; }
+    .divider a { color: #a5b4fc; text-decoration: none; font-weight: 600; transition: color 0.2s; }
+    .divider a:hover { color: #c4b5fd; }
+
+    /* ===== FEATURES HINT ===== */
+    .feature-hint {
+      display: flex; gap: 12px; margin-top: 28px; justify-content: center;
+    }
+    .feature-chip {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; color: rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 999px; padding: 4px 10px;
+    }
+    .feature-chip svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2; opacity: 0.7; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 480px) {
+      .card { padding: 32px 22px; border-radius: 24px; }
+      .logo-icon { width: 50px; height: 50px; }
+      .logo-title { font-size: 22px; }
+      .feature-hint { display: none; }
+    }
+    @media (min-width: 768px) {
+      .card { padding: 48px 44px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Background layers -->
+<div class="aurora"></div>
+<div class="noise"></div>
+<div class="grid-overlay"></div>
+
+<!-- Main content -->
+<div class="page-wrapper">
+  <div class="card">
+
+    <!-- Logo -->
+    <div class="logo-area">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="logo-title">LeoAI</div>
+      <div class="logo-sub">智能文档 & AI 创作平台</div>
+    </div>
+
+    <!-- Tab switch -->
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('login')"><span>登 录</span></button>
+      <button class="tab-btn" onclick="switchTab('register')"><span>注 册</span></button>
+    </div>
+
+    <!-- Login form -->
+    <div class="form-panel active" id="panel-login">
+      <div class="form-group">
+        <label class="form-label">
+          <svg class="label-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          邮箱地址
+        </label>
+        <input type="email" class="form-input" id="login-email" placeholder="your@email.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <svg class="label-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          密码
+        </label>
+        <div class="form-input-wrap">
+          <input type="password" class="form-input" id="login-password" placeholder="输入密码" autocomplete="current-password" />
+        </div>
+      </div>
+      <button class="btn-primary" id="login-btn" onclick="doLogin()">登 录</button>
+      <div class="status-msg" id="login-msg"></div>
+      <div class="divider">还没有账号？<a href="javascript:void(0)" onclick="switchTab('register')">立即注册 →</a></div>
+    </div>
+
+    <!-- Register form -->
+    <div class="form-panel" id="panel-register">
+      <div class="form-group">
+        <label class="form-label">
+          <svg class="label-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          用户名
+        </label>
+        <input type="text" class="form-input" id="reg-username" placeholder="6-20位字母或数字" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <svg class="label-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          邮箱地址
+        </label>
+        <input type="email" class="form-input" id="reg-email" placeholder="your@email.com" autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          <svg class="label-icon" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          密码
+        </label>
+        <input type="password" class="form-input" id="reg-password" placeholder="6位以上密码" autocomplete="new-password" />
+      </div>
+      <button class="btn-primary" id="reg-btn" onclick="doRegister()">创建账号</button>
+      <div class="status-msg" id="reg-msg"></div>
+      <div class="divider">已有账号？<a href="javascript:void(0)" onclick="switchTab('login')">立即登录 →</a></div>
+    </div>
+
+    <!-- Feature hints -->
+    <div class="feature-hint">
+      <div class="feature-chip">
+        <svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 017 7 7 7 0 01-7 7 7 7 0 01-7-7 7 7 0 017-7z"/></svg>
+        AI 智能创作
+      </div>
+      <div class="feature-chip">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        文档管理
+      </div>
+      <div class="feature-chip">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        任务中心
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ===== Tab switch =====
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1)));
+    document.getElementById('panel-login').classList.toggle('active', tab==='login');
+    document.getElementById('panel-register').classList.toggle('active', tab==='register');
+    clearMsg('login-msg'); clearMsg('reg-msg');
+    // clear errors
+    document.querySelectorAll('.form-input').forEach(el => el.classList.remove('error'));
+  }
+
+  // ===== Show message =====
+  function showMsg(id, type, text) {
+    const el = document.getElementById(id);
+    el.className = 'status-msg ' + type;
+    el.innerHTML = type === 'loading' ? `<span class="spinner"></span><span>${text}</span>` : text;
+  }
+  function clearMsg(id) {
+    const el = document.getElementById(id);
+    el.className = 'status-msg';
+    el.innerHTML = '';
+  }
+  function setLoading(id, btnId, loading) {
+    const btn = document.getElementById(btnId);
+    const el = document.getElementById(id);
+    if (loading) {
+      btn.disabled = true;
+      showMsg(id, 'loading', '处理中...');
+    } else {
+      btn.disabled = false;
+      clearMsg(id);
+    }
+  }
+
+  // ===== API =====
+  const API = '';
+
+  // ===== Login =====
+  async function doLogin() {
+    clearMsg('login-msg');
+    document.querySelectorAll('#panel-login .form-input').forEach(el => el.classList.remove('error'));
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email) { document.getElementById('login-email').classList.add('error'); return showMsg('login-msg','error','请输入邮箱地址'); }
+    if (!password) { document.getElementById('login-password').classList.add('error'); return showMsg('login-msg','error','请输入密码'); }
+    setLoading('login-msg', 'login-btn', true);
+    try {
+      const res = await fetch(API + '/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '登录失败，请检查邮箱和密码');
+      localStorage.setItem('leo_token', data.token);
+      localStorage.setItem('leo_user_id', data.user_id);
+      // 保存用户信息
+      localStorage.setItem('leo_username', data.username || email.split('@')[0]);
+      localStorage.setItem('leo_subscription', data.subscription_type || 'free');
+      showMsg('login-msg','success','✓ 登录成功，正在跳转...');
+      setTimeout(() => location.href = '/app', 700);
+    } catch(e) {
+      setLoading('login-msg', 'login-btn', false);
+      showMsg('login-msg','error', '✗ ' + e.message);
+    }
+  }
+
+  // ===== Register =====
+  async function doRegister() {
+    clearMsg('reg-msg');
+    document.querySelectorAll('#panel-register .form-input').forEach(el => el.classList.remove('error'));
+    const username = document.getElementById('reg-username').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    if (!username) { document.getElementById('reg-username').classList.add('error'); return showMsg('reg-msg','error','请输入用户名'); }
+    if (!email) { document.getElementById('reg-email').classList.add('error'); return showMsg('reg-msg','error','请输入邮箱'); }
+    if (!password || password.length < 6) { document.getElementById('reg-password').classList.add('error'); return showMsg('reg-msg','error','密码至少6位'); }
+    setLoading('reg-msg', 'reg-btn', true);
+    try {
+      const res = await fetch(API + '/api/v1/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || '注册失败，请稍后重试');
+      showMsg('reg-msg','success','✓ 注册成功！正在跳转登录...');
+      setTimeout(() => switchTab('login'), 1200);
+    } catch(e) {
+      setLoading('reg-msg', 'reg-btn', false);
+      showMsg('reg-msg','error', '✗ ' + e.message);
+    }
+  }
+
+  // ===== Enter key =====
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (document.getElementById('panel-login').classList.contains('active')) doLogin();
+    else doRegister();
+  });
+
+  // ===== Input focus error clear =====
+  document.querySelectorAll('.form-input').forEach(input => {
+    input.addEventListener('input', () => input.classList.remove('error'));
+  });
+
+  // ===== Auto redirect if logged in =====
+  if (localStorage.getItem('leo_token')) location.href = '/app';
+</script>
+</body>
+</html>

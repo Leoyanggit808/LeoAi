@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeoAI — 前端路由说明</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; background: #07071a; color: #e2e8f0; min-height: 100vh; padding: 40px; line-height: 1.7; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 28px; font-weight: 800; background: linear-gradient(90deg,#fff,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom: 8px; letter-spacing: -0.5px; }
+    .subtitle { font-size: 14px; color: rgba(255,255,255,0.35); margin-bottom: 40px; }
+    .section { margin-bottom: 36px; }
+    .section-title { font-size: 16px; font-weight: 700; color: white; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .route-item { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px 20px; margin-bottom: 10px; }
+    .route-item .method { display: inline-block; background: rgba(34,197,94,0.15); color: #86efac; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(34,197,94,0.2); margin-right: 10px; letter-spacing: 0.5px; }
+    .route-item .path { font-size: 14px; color: #a5b4fc; font-weight: 600; font-family: 'SF Mono', monospace; }
+    .route-item .desc { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 6px; }
+    .code-block { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin-top: 12px; overflow-x: auto; }
+    .code-block pre { font-family: 'SF Mono', 'Consolas', monospace; font-size: 13px; color: #e2e8f0; line-height: 1.8; }
+    .code-comment { color: #6b7280; }
+    .code-keyword { color: #c4b5fd; }
+    .code-string { color: #86efac; }
+    .code-func { color: #93c5fd; }
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; margin-right: 6px; }
+    .badge-current { background: rgba(34,197,94,0.15); color: #86efac; border: 1px solid rgba(34,197,94,0.2); }
+    .badge-note { background: rgba(251,191,36,0.12); color: #fde68a; border: 1px solid rgba(251,191,36,0.2); }
+    .info-box { background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; padding: 16px 20px; margin-top: 16px; }
+    .info-box .info-title { font-size: 13px; font-weight: 700; color: #a5b4fc; margin-bottom: 6px; }
+    .info-box .info-text { font-size: 13px; color: rgba(255,255,255,0.55); }
+  </style>
+</head>
+<body>
+<div class="container">
+
+<h1>🎨 LeoAI 前端页面路由说明</h1>
+<p class="subtitle">在 router.go 中添加以下路由即可访问对应页面</p>
+
+<!-- 已有的路由 -->
+<div class="section">
+  <div class="section-title">✅ 已配置（无需修改）</div>
+  <div class="route-item">
+    <span class="method">GET</span>
+    <span class="path">/</span>
+    <div class="desc">根路径 → 自动重定向到登录页（已配置）</div>
+  </div>
+  <div class="route-item">
+    <span class="method">GET</span>
+    <span class="path">/static/*</span>
+    <div class="desc">所有静态文件（auth.html、app.html 等）均已通过 r.Static 自动服务（已配置）</div>
+  </div>
+</div>
+
+<!-- 主页面路由 -->
+<div class="section">
+  <div class="section-title">📄 主页面路由（在 router.go 中添加）</div>
+
+  <div class="route-item">
+    <span class="method">GET</span>
+    <span class="path">/app</span>
+    <div class="desc">主工作台（单页应用，包含概览/文档/AI/任务/分类/标签/设置）</div>
+  </div>
+  <div class="route-item">
+    <span class="method">GET</span>
+    <span class="path">/auth</span>
+    <div class="desc">登录 / 注册页面</div>
+  </div>
+
+  <div class="code-block">
+<pre><span class="code-comment">// 在 SetupRouter 函数中，r.Static("/static", "./static") 之后添加：</span>
+
+<span class="code-comment">// ===== 前端页面路由 =====</span>
+<span class="code-func">r</span>.<span class="code-keyword">GET</span>(<span class="code-string">"/app"</span>, <span class="code-keyword">func</span>(c *gin.Context) {
+    c.<span class="code-func">File</span>(<span class="code-string">"./static/app.html"</span>)
+})
+
+<span class="code-func">r</span>.<span class="code-keyword">GET</span>(<span class="code-string">"/auth"</span>, <span class="code-keyword">func</span>(c *gin.Context) {
+    c.<span class="code-func">File</span>(<span class="code-string">"./static/auth.html"</span>)
+})</pre>
+  </div>
+</div>
+
+<!-- 完整 router.go 示例 -->
+<div class="section">
+  <div class="section-title">📋 完整的 router.go 示例代码</div>
+  <div class="code-block">
+<pre>package router
+
+<span class="code-keyword">import</span> (
+    <span class="code-string">"LeoAi/config"</span>
+    <span class="code-string">"LeoAi/internal/handler"</span>
+    <span class="code-string">"LeoAi/internal/middleware"</span>
+    <span class="code-string">"net/http"</span>
+
+    <span class="code-string">"github.com/gin-gonic/gin"</span>
+)
+
+<span class="code-keyword">func</span> <span class="code-func">SetupRouter</span>(
+    userHandler *handler.UserHandler,
+    documentHandler *handler.DocumentHandler,
+    taskHandler *handler.TaskHandler,
+    cfg *config.Config,
+) *gin.Engine {
+    r := gin.Default()
+
+    <span class="code-comment">// ====================== 静态前端文件 ======================</span>
+    r.<span class="code-func">Static</span>(<span class="code-string">"/static"</span>, <span class="code-string">"./static"</span>)
+    r.<span class="code-keyword">GET</span>(<span class="code-string">"/"</span>, <span class="code-keyword">func</span>(c *gin.Context) {
+        c.<span class="code-func">Redirect</span>(http.StatusFound, <span class="code-string">"/app"</span>)
+    })
+
+    <span class="code-comment">// ====================== 前端页面路由 ======================</span>
+    r.<span class="code-keyword">GET</span>(<span class="code-string">"/app"</span>, <span class="code-keyword">func</span>(c *gin.Context) {
+        c.<span class="code-func">File</span>(<span class="code-string">"./static/app.html"</span>)
+    })
+    r.<span class="code-keyword">GET</span>(<span class="code-string">"/auth"</span>, <span class="code-keyword">func</span>(c *gin.Context) {
+        c.<span class="code-func">File</span>(<span class="code-string">"./static/auth.html"</span>)
+    })
+
+    <span class="code-comment">// ====================== API 路由 ======================</span>
+    <span class="code-comment">// 公开 API（登录/注册无需认证）</span>
+    public := r.<span class="code-func">Group</span>(<span class="code-string">"/api/v1"</span>)
+    {
+        auth := public.<span class="code-func">Group</span>(<span class="code-string">"/auth"</span>)
+        {
+            auth.<span class="code-keyword">POST</span>(<span class="code-string">"/register"</span>, userHandler.Register)
+            auth.<span class="code-keyword">POST</span>(<span class="code-string">"/login"</span>, userHandler.Login)
+        }
+    }
+
+    <span class="code-comment">// 需要 JWT 认证的 API</span>
+    protected := r.<span class="code-func">Group</span>(<span class="code-string">"/api/v1"</span>)
+    protected.<span class="code-func">Use</span>(middleware.JWTAuth(cfg))
+    {
+        <span class="code-comment">// 文档管理</span>
+        doc := protected.<span class="code-func">Group</span>(<span class="code-string">"/documents"</span>)
+        {
+            doc.<span class="code-keyword">POST</span>(<span class="code-string">""</span>, documentHandler.Upload)
+            doc.<span class="code-keyword">GET</span>(<span class="code-string">""</span>, documentHandler.List)
+        }
+
+        <span class="code-comment">// AI 任务</span>
+        task := protected.<span class="code-func">Group</span>(<span class="code-string">"/tasks"</span>)
+        {
+            task.<span class="code-keyword">POST</span>(<span class="code-string">""</span>, taskHandler.SubmitTask)
+            task.<span class="code-keyword">GET</span>(<span class="code-string">"/:id"</span>, taskHandler.GetTaskStatus)
+        }
+    }
+
+    <span class="code-keyword">return</span> r
+}</pre>
+  </div>
+</div>
+
+<!-- 页面说明 -->
+<div class="section">
+  <div class="section-title">🗂️ 页面说明</div>
+
+  <div class="route-item">
+    <span class="badge badge-current">app.html</span>
+    <span class="desc" style="display:inline;margin-left:0;margin-top:0;">主工作台 — 单页应用，通过侧边栏导航切换 7 个功能模块：概览、文档管理、AI 生成、任务中心、分类管理、标签管理、个人设置。未登录用户自动重定向到 /auth。</span>
+  </div>
+  <div class="route-item">
+    <span class="badge badge-current">auth.html</span>
+    <span class="desc" style="display:inline;margin-left:0;margin-top:0;">登录 / 注册页面 — 支持登录和注册 Tab 切换，已登录用户自动跳转 /app。登录成功后 token 保存在 localStorage。</span>
+  </div>
+
+  <div class="info-box">
+    <div class="info-title">💡 设计说明</div>
+    <div class="info-text">
+      所有页面采用深色玻璃态设计风格（Glassmorphism），融入动态极光背景、流光渐变按钮、微妙的网格纹理。兼容 PC / 平板 / 手机三端自适应。<br><br>
+      设计参考：Linear / Vercel / Notion AI — 年轻化、灵动、现代感强，科技感但不冷漠。
+    </div>
+  </div>
+</div>
+
+<!-- 文件结构 -->
+<div class="section">
+  <div class="section-title">📁 static 目录结构</div>
+  <div class="code-block">
+<pre>static/
+  auth.html          ← 登录/注册页
+  app.html           ← 主工作台（7个模块合集）
+  README.html        ← 本说明文档</pre>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

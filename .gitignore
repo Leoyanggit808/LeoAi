@@ -1,0 +1,20 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Go
+go.sum
+
+# WorkBuddy (项目记忆/配置)
+.workbuddy/
+
+# Uploads (用户上传文件)
+uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

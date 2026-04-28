@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeoAI — 个人设置</title>
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; }
+    :root {
+      --bg: #060612;
+      --surface: rgba(255,255,255,0.04);
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.07);
+      --border-strong: rgba(255,255,255,0.12);
+      --text: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #475569;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --accent-glow: rgba(99,102,241,0.25);
+      --danger: #ef4444;
+      --danger-hover: #f87171;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --radius: 12px;
+      --radius-lg: 16px;
+    }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+    /* ===== AURORA BACKGROUND ===== */
+    .aurora {
+      position: fixed; inset: 0; overflow: hidden; z-index: 0; pointer-events: none;
+    }
+    .aurora-blob {
+      position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.3;
+    }
+    .aurora-blob-1 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, #6366f1, transparent 70%);
+      top: -200px; left: -100px;
+      animation: aurora-float-1 18s ease-in-out infinite;
+    }
+    .aurora-blob-2 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #06b6d4, transparent 70%);
+      bottom: -150px; right: -100px;
+      animation: aurora-float-2 22s ease-in-out infinite;
+    }
+    .aurora-blob-3 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #a855f7, transparent 70%);
+      top: 50%; left: 50%; transform: translate(-50%,-50%);
+      animation: aurora-float-3 16s ease-in-out infinite;
+    }
+    @keyframes aurora-float-1 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(60px,40px) scale(1.1); } 66% { transform: translate(-30px,60px) scale(0.95); } }
+    @keyframes aurora-float-2 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(-50px,-30px) scale(1.05); } 66% { transform: translate(40px,-50px) scale(1.08); } }
+    @keyframes aurora-float-3 { 0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 0.2; } 50% { transform: translate(-50%,-50%) scale(1.3); opacity: 0.35; } }
+
+    /* ===== LAYOUT ===== */
+    .page-wrapper {
+      position: relative; z-index: 1; min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+    .topbar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      background: rgba(6,6,18,0.6);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: 8px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text-secondary); font-size: 13px; cursor: pointer;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .back-btn:hover { background: var(--surface-hover); color: var(--text); border-color: var(--border-strong); }
+    .topbar-title { font-size: 15px; font-weight: 600; color: var(--text); margin-left: 4px; }
+    .topbar-spacer { flex: 1; }
+    .save-btn {
+      padding: 8px 20px; border-radius: 8px; border: none;
+      background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+    }
+    .save-btn::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .save-btn:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-glow); }
+    .save-btn:hover::before { opacity: 1; }
+    .save-btn:active { transform: translateY(0); }
+    .save-btn.saving { opacity: 0.7; pointer-events: none; }
+    .save-btn.saved { background: var(--success); }
+
+    .main-content {
+      flex: 1; max-width: 800px; width: 100%; margin: 0 auto;
+      padding: 40px 32px 80px;
+    }
+
+    /* ===== PAGE HEADER ===== */
+    .page-header { margin-bottom: 36px; }
+    .page-title { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .page-desc { font-size: 14px; color: var(--text-secondary); }
+
+    /* ===== SECTION ===== */
+    .section { margin-bottom: 32px; }
+    .section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 12px; padding-left: 2px;
+    }
+
+    /* ===== PROFILE CARD ===== */
+    .profile-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 28px;
+      display: flex; align-items: center; gap: 20px;
+    }
+    .avatar-wrap { position: relative; flex-shrink: 0; }
+    .avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 700; color: #fff;
+      cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .avatar:hover { transform: scale(1.05); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .avatar-badge {
+      position: absolute; bottom: 0; right: 0;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--success); border: 2px solid var(--bg);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .avatar-badge svg { width: 10px; height: 10px; }
+    .profile-info { flex: 1; }
+    .profile-name { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .profile-role { font-size: 13px; color: var(--text-secondary); }
+    .profile-stats { display: flex; gap: 24px; margin-top: 14px; }
+    .stat-item { text-align: center; }
+    .stat-num { font-size: 18px; font-weight: 700; color: var(--accent); }
+    .stat-lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); overflow: hidden;
+    }
+    .card-row {
+      display: flex; align-items: center; gap: 16px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .card-row:last-child { border-bottom: none; }
+    .card-row:hover { background: var(--surface-hover); }
+    .card-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--surface-hover); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; color: var(--text-secondary);
+    }
+    .card-icon svg { width: 17px; height: 17px; }
+    .card-content { flex: 1; min-width: 0; }
+    .card-label { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .card-desc { font-size: 12px; color: var(--text-secondary); }
+    .card-value { font-size: 13px; color: var(--text-secondary); margin-right: 8px; white-space: nowrap; }
+    .card-action { font-size: 13px; color: var(--accent); font-weight: 500; cursor: pointer; transition: color 0.2s; white-space: nowrap; }
+    .card-action:hover { color: var(--accent-hover); }
+
+    /* ===== INPUT ===== */
+    .field-group { padding: 20px 24px; border-bottom: 1px solid var(--border); }
+    .field-group:last-child { border-bottom: none; }
+    .field-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; display: block; }
+    .field-row { display: flex; gap: 12px; align-items: center; }
+    .input-wrap { flex: 1; position: relative; }
+    .input {
+      width: 100%; padding: 10px 14px; border-radius: 8px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      color: var(--text); font-size: 14px; font-family: inherit;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .input::placeholder { color: var(--text-muted); }
+    .input:disabled { opacity: 0.5; cursor: not-allowed; }
+    .input-suffix { font-size: 12px; color: var(--text-muted); margin-left: 8px; white-space: nowrap; }
+    .field-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+
+    /* ===== TOGGLE ===== */
+    .toggle-wrap { display: flex; align-items: center; gap: 12px; padding: 16px 24px; border-bottom: 1px solid var(--border); }
+    .toggle-wrap:last-child { border-bottom: none; }
+    .toggle-label { flex: 1; }
+    .toggle-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .toggle-desc { font-size: 12px; color: var(--text-secondary); }
+    .toggle {
+      position: relative; width: 44px; height: 24px; cursor: pointer; flex-shrink: 0;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0; border-radius: 24px;
+      background: rgba(255,255,255,0.1); border: 1px solid var(--border);
+      transition: all 0.25s;
+    }
+    .toggle-thumb {
+      position: absolute; top: 3px; left: 3px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; transition: all 0.25s;
+    }
+    .toggle input:checked ~ .toggle-track { background: var(--accent); border-color: var(--accent); }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(20px); }
+
+    /* ===== COLOR PICKER ===== */
+    .accent-options { display: flex; gap: 10px; padding: 16px 24px; flex-wrap: wrap; }
+    .accent-dot {
+      width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: all 0.2s;
+      position: relative;
+    }
+    .accent-dot:hover { transform: scale(1.15); }
+    .accent-dot.active { border-color: #fff; transform: scale(1.1); }
+    .accent-dot.active::after {
+      content: '✓'; position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: #fff; font-weight: 700;
+    }
+
+    /* ===== PLAN BADGE ===== */
+    .plan-badge { display: inline-flex; align-items: center; gap: 3px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; border: 1px solid; }
+    .plan-badge.free { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.45); border-color: rgba(255,255,255,0.12); }
+    .plan-badge.pro { background: rgba(245,158,11,0.18); color: #fbbf24; border-color: rgba(245,158,11,0.4); }
+
+    /* ===== DANGER ZONE ===== */
+    .danger-section { border-color: rgba(239,68,68,0.2); }
+    .danger-section .card-row:hover { background: rgba(239,68,68,0.05); }
+    .danger-text { color: var(--danger) !important; }
+    .danger-text-desc { color: rgba(239,68,68,0.7) !important; }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed; bottom: 32px; right: 32px; z-index: 9999;
+      padding: 12px 20px; border-radius: 10px;
+      font-size: 13px; font-weight: 600;
+      transform: translateY(80px); opacity: 0;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      backdrop-filter: blur(20px); border: 1px solid;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast-success { background: rgba(16,185,129,0.9); color: #fff; border-color: rgba(16,185,129,0.3); }
+    .toast-error { background: rgba(239,68,68,0.9); color: #fff; border-color: rgba(239,68,68,0.3); }
+    .toast-warning { background: rgba(245,158,11,0.9); color: #fff; border-color: rgba(245,158,11,0.3); }
+
+    /* ===== DIVIDER ===== */
+    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 640px) {
+      .topbar { padding: 16px 20px; }
+      .main-content { padding: 24px 20px 60px; }
+      .profile-card { flex-direction: column; text-align: center; }
+      .profile-stats { justify-content: center; }
+      .profile-stats .stat-item { flex: 1; }
+      .field-row { flex-direction: column; align-items: stretch; }
+      .card-row { padding: 14px 16px; }
+      .field-group { padding: 16px; }
+      .accent-options { padding: 14px 16px; }
+    }
+    @media (max-width: 480px) {
+      .page-title { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Aurora Background -->
+<div class="aurora">
+  <div class="aurora-blob aurora-blob-1"></div>
+  <div class="aurora-blob aurora-blob-2"></div>
+  <div class="aurora-blob aurora-blob-3"></div>
+</div>
+
+<!-- Page -->
+<div class="page-wrapper">
+
+  <!-- Top Bar -->
+  <header class="topbar">
+    <a href="/app" class="back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      返回工作台
+    </a>
+    <span class="topbar-title">个人设置</span>
+    <div class="topbar-spacer"></div>
+    <button class="save-btn" id="saveBtn" onclick="saveAll()">保存更改</button>
+  </header>
+
+  <!-- Main -->
+  <main class="main-content">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-title">👤 个人资料</div>
+      <div class="page-desc">管理你的账号信息、偏好设置和通知选项</div>
+    </div>
+
+    <!-- Profile Card -->
+    <div class="section">
+      <div class="profile-card" id="profileCard">
+        <div class="avatar-wrap">
+          <div class="avatar" id="avatarEl">L</div>
+          <div class="avatar-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>
+        <div class="profile-info">
+          <div class="profile-name" id="displayName">LeoAI 用户</div>
+          <div class="profile-role" id="displayEmail">加载中...</div>
+          <div class="profile-stats">
+            <div class="stat-item">
+              <div class="stat-num" id="statDocs">—</div>
+              <div class="stat-lbl">文档</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-num" id="statTasks">—</div>
+              <div class="stat-lbl">任务</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-num" id="statDays">—</div>
+              <div class="stat-lbl">使用天数</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Account Info -->
+    <div class="section">
+      <div class="section-label">账号信息</div>
+      <div class="card">
+        <div class="field-group">
+          <label class="field-label">用户名</label>
+          <div class="input-wrap">
+            <input type="text" class="input" id="fieldUsername" placeholder="输入用户名" maxlength="30" />
+          </div>
+          <div class="field-hint">用户名用于登录，不可与其他用户重复</div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">邮箱</label>
+          <div class="input-wrap">
+            <input type="email" class="input" id="fieldEmail" placeholder="输入邮箱" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">显示名称</label>
+          <div class="input-wrap">
+            <input type="text" class="input" id="fieldDisplayName" placeholder="你在工作台中显示的名称" maxlength="20" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Password -->
+    <div class="section">
+      <div class="section-label">安全</div>
+      <div class="card">
+        <div class="field-group">
+          <label class="field-label">当前密码</label>
+          <div class="input-wrap">
+            <input type="password" class="input" id="fieldOldPwd" placeholder="输入当前密码（验证身份）" autocomplete="current-password" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">新密码</label>
+          <div class="input-wrap">
+            <input type="password" class="input" id="fieldNewPwd" placeholder="输入新密码（至少 6 位）" autocomplete="new-password" />
+          </div>
+          <div class="field-hint">留空则不修改密码；新密码至少 6 位</div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">确认新密码</label>
+          <div class="input-wrap">
+            <input type="password" class="input" id="fieldConfirmPwd" placeholder="再次输入新密码" autocomplete="new-password" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Appearance -->
+    <div class="section">
+      <div class="section-label">外观</div>
+      <div class="card">
+        <div class="toggle-wrap">
+          <div class="toggle-label">
+            <div class="toggle-title">深色模式</div>
+            <div class="toggle-desc">目前强制启用深色主题</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" checked disabled />
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="toggle-wrap">
+          <div class="toggle-label">
+            <div class="toggle-title">极光动效</div>
+            <div class="toggle-desc">背景中的极光光球动画</div>
+          </div>
+          <label class="toggle" id="toggleAurora">
+            <input type="checkbox" id="optAurora" checked />
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="toggle-wrap">
+          <div class="toggle-label">
+            <div class="toggle-title">紧凑模式</div>
+            <div class="toggle-desc">减小卡片间距，显示更多内容</div>
+          </div>
+          <label class="toggle" id="toggleCompact">
+            <input type="checkbox" id="optCompact" />
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="toggle-wrap">
+          <div class="toggle-label">
+            <div class="toggle-title">流光按钮</div>
+            <div class="toggle-desc">按钮上的流光扫过动效</div>
+          </div>
+          <label class="toggle" id="toggleShimmer">
+            <input type="checkbox" id="optShimmer" checked />
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="section-label" style="margin-bottom: 12px;">主题色</div>
+      <div class="card">
+        <div class="accent-options">
+          <div class="accent-dot active" data-color="#6366f1" style="background: #6366f1;" onclick="setAccentColor(this, '#6366f1')"></div>
+          <div class="accent-dot" data-color="#06b6d4" style="background: #06b6d4;" onclick="setAccentColor(this, '#06b6d4')"></div>
+          <div class="accent-dot" data-color="#a855f7" style="background: #a855f7;" onclick="setAccentColor(this, '#a855f7')"></div>
+          <div class="accent-dot" data-color="#f59e0b" style="background: #f59e0b;" onclick="setAccentColor(this, '#f59e0b')"></div>
+          <div class="accent-dot" data-color="#10b981" style="background: #10b981;" onclick="setAccentColor(this, '#10b981')"></div>
+          <div class="accent-dot" data-color="#ef4444" style="background: #ef4444;" onclick="setAccentColor(this, '#ef4444')"></div>
+          <div class="accent-dot" data-color="#ec4899" style="background: #ec4899;" onclick="setAccentColor(this, '#ec4899')"></div>
+          <div class="accent-dot" data-color="#64748b" style="background: #64748b;" onclick="setAccentColor(this, '#64748b')"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="section">
+      <div class="section-label">通知</div>
+      <div class="card">
+        <div class="toggle-wrap">
+          <div class="toggle-label">
+            <div class="toggle-title">AI 任务完成通知</div>
+            <div class="toggle-desc">AI 内容生成或分析完成时提醒</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notifTask" checked />
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="toggle-wrap">
+          <div class="toggle-label">
+            <div class="toggle-title">文档上传成功</div>
+            <div class="toggle-desc">文档上传处理完成后提醒</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notifDoc" checked />
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+        <div class="toggle-wrap">
+          <div class="toggle-label">
+            <div class="toggle-title">声音提示</div>
+            <div class="toggle-desc">任务完成时播放提示音</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="notifSound" />
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Subscription -->
+    <div class="section">
+      <div class="section-label">订阅计划</div>
+      <div class="card">
+        <div class="card-row" style="cursor:default;">
+          <div class="card-icon">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <div class="card-content">
+            <div class="card-label">当前计划</div>
+            <div class="card-desc">您正在使用的订阅套餐</div>
+          </div>
+          <div>
+            <span class="plan-badge" id="profPlanBadge" style="font-size:12px;padding:4px 12px;">Free</span>
+          </div>
+        </div>
+        <div id="subUpgradeRow">
+          <div class="card-row" style="cursor:default;">
+            <div class="card-icon" style="background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.3);color:#fbbf24;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </div>
+            <div class="card-content">
+              <div class="card-label" style="color:#fbbf24;">💎 Pro 计划 · $10 / 月</div>
+              <div class="card-desc">无限 AI 任务 · 优先处理 · 无限文档 · 高级 RAG</div>
+            </div>
+            <div class="card-action" id="profUpgradeBtn" onclick="profUpgrade()">立即升级</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="section">
+      <div class="section-label" style="color: var(--danger);">危险区域</div>
+      <div class="card danger-section">
+        <div class="card-row" style="cursor: default;">
+          <div class="card-icon" style="border-color: rgba(239,68,68,0.2); color: var(--danger);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="card-content">
+            <div class="card-label danger-text">导出账号数据</div>
+            <div class="card-desc danger-text-desc">下载你的所有文档和任务记录</div>
+          </div>
+          <div class="card-action" onclick="exportData()">导出 .json</div>
+        </div>
+        <div class="card-row" style="cursor: default;">
+          <div class="card-icon" style="border-color: rgba(239,68,68,0.2); color: var(--danger);">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </div>
+          <div class="card-content">
+            <div class="card-label danger-text">注销账号</div>
+            <div class="card-desc danger-text-desc">永久删除账号及所有关联数据，此操作不可撤销</div>
+          </div>
+          <div class="card-action danger-text" onclick="confirmDelete()">注销账号</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ===== AUTH GUARD =====
+  const token = localStorage.getItem('leo_token');
+  if (!token) location.href = '/auth';
+
+  // ===== DEFAULTS =====
+  const defaults = {
+    username: '',
+    email: '',
+    displayName: 'LeoAI 用户',
+    accentColor: '#6366f1',
+    aurora: true,
+    compact: false,
+    shimmer: true,
+    notifTask: true,
+    notifDoc: true,
+    notifSound: false,
+    createdAt: null,
+  };
+
+  // ===== LOAD =====
+  function loadProfile() {
+    const saved = JSON.parse(localStorage.getItem('leo_profile') || 'null');
+    const data = saved || defaults;
+
+    // 优先使用登录时保存的 leo_username，再回退到 leo_profile 中的值
+    const loginUsername = localStorage.getItem('leo_username') || '';
+    document.getElementById('fieldUsername').value = data.username || loginUsername;
+    document.getElementById('fieldEmail').value = data.email || '';
+    document.getElementById('fieldDisplayName').value = data.displayName || defaults.displayName;
+    document.getElementById('optAurora').checked = data.aurora !== false;
+    document.getElementById('optCompact').checked = data.compact === true;
+    document.getElementById('optShimmer').checked = data.shimmer !== false;
+    document.getElementById('notifTask').checked = data.notifTask !== false;
+    document.getElementById('notifDoc').checked = data.notifDoc !== false;
+    document.getElementById('notifSound').checked = data.notifSound === true;
+
+    // Accent color
+    const activeDot = document.querySelector(`.accent-dot[data-color="${data.accentColor}"]`) || document.querySelector('.accent-dot');
+    document.querySelectorAll('.accent-dot').forEach(d => d.classList.remove('active'));
+    if (activeDot) activeDot.classList.add('active');
+
+    // Subscription
+    loadProfilePlan();
+
+    // Avatar initial — 优先用登录用户名，再用显示名
+    const name = loginUsername || data.displayName || defaults.displayName;
+    document.getElementById('displayName').textContent = name;
+    document.getElementById('avatarEl').textContent = name.charAt(0).toUpperCase();
+    document.getElementById('displayEmail').textContent = data.email || '未设置邮箱';
+
+    // Stats
+    const docs = parseInt(localStorage.getItem('leo_stat_docs') || '0');
+    const tasks = parseInt(localStorage.getItem('leo_stat_tasks') || '0');
+    document.getElementById('statDocs').textContent = docs;
+    document.getElementById('statTasks').textContent = tasks;
+
+    if (data.createdAt) {
+      const days = Math.floor((Date.now() - new Date(data.createdAt).getTime()) / 86400000);
+      document.getElementById('statDays').textContent = days > 0 ? days : '1';
+    } else {
+      document.getElementById('statDays').textContent = '1';
+    }
+
+    // Aurora
+    document.querySelector('.aurora').style.display = data.aurora !== false ? '' : 'none';
+  }
+
+  // ===== SUBSCRIPTION =====
+  function loadProfilePlan() {
+    const sub = localStorage.getItem('leo_subscription') || 'free';
+    const isPro = sub !== 'free';
+    const badge = document.getElementById('profPlanBadge');
+    const upgradeRow = document.getElementById('subUpgradeRow');
+    const upgradeBtn = document.getElementById('profUpgradeBtn');
+    badge.textContent = isPro ? '💎 Pro' : 'Free';
+    badge.className = 'plan-badge ' + (isPro ? 'pro' : 'free');
+    if (upgradeRow) upgradeRow.style.display = isPro ? 'none' : 'block';
+  }
+
+  function profUpgrade() {
+    const btn = document.getElementById('profUpgradeBtn');
+    if (!btn) return;
+    // 支付功能暂未开放，仅做提示
+    showToast('💳 支付功能暂未开放，敬请期待', 'warning');
+  }
+
+  // ===== ACCENT COLOR =====
+  let selectedAccent = '#6366f1';
+  function setAccentColor(el, color) {
+    document.querySelectorAll('.accent-dot').forEach(d => d.classList.remove('active'));
+    el.classList.add('active');
+    selectedAccent = color;
+    document.documentElement.style.setProperty('--accent', color);
+    // Compute glow color
+    document.documentElement.style.setProperty('--accent-glow', color + '40');
+  }
+
+  // ===== TOAST =====
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast toast-${type}`;
+    setTimeout(() => t.classList.add('show'), 10);
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  // ===== SAVE =====
+  function saveAll() {
+    const btn = document.getElementById('saveBtn');
+    btn.classList.add('saving');
+    btn.textContent = '保存中...';
+
+    const username = document.getElementById('fieldUsername').value.trim();
+    const email = document.getElementById('fieldEmail').value.trim();
+    const displayName = document.getElementById('fieldDisplayName').value.trim() || defaults.displayName;
+    const newPwd = document.getElementById('fieldNewPwd').value;
+    const confirmPwd = document.getElementById('fieldConfirmPwd').value;
+    const oldPwd = document.getElementById('fieldOldPwd').value;
+
+    // Basic validation
+    if (username && !/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+      showToast('用户名格式：3-20位字母/数字/下划线', 'error');
+      btn.classList.remove('saving'); btn.textContent = '保存更改'; return;
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showToast('邮箱格式不正确', 'error');
+      btn.classList.remove('saving'); btn.textContent = '保存更改'; return;
+    }
+
+    // Password change
+    if (newPwd || confirmPwd) {
+      if (!oldPwd) { showToast('修改密码需要填写当前密码', 'error'); btn.classList.remove('saving'); btn.textContent = '保存更改'; return; }
+      if (newPwd.length < 6) { showToast('新密码至少 6 位', 'error'); btn.classList.remove('saving'); btn.textContent = '保存更改'; return; }
+      if (newPwd !== confirmPwd) { showToast('两次新密码不一致', 'error'); btn.classList.remove('saving'); btn.textContent = '保存更改'; return; }
+    }
+
+    // Build profile
+    const profile = {
+      username,
+      email,
+      displayName,
+      accentColor: selectedAccent,
+      aurora: document.getElementById('optAurora').checked,
+      compact: document.getElementById('optCompact').checked,
+      shimmer: document.getElementById('optShimmer').checked,
+      notifTask: document.getElementById('notifTask').checked,
+      notifDoc: document.getElementById('notifDoc').checked,
+      notifSound: document.getElementById('notifSound').checked,
+      updatedAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem('leo_profile', JSON.stringify(profile));
+
+    // Update UI
+    document.getElementById('displayName').textContent = displayName;
+    document.getElementById('avatarEl').textContent = displayName.charAt(0).toUpperCase();
+    document.getElementById('displayEmail').textContent = email || '未设置邮箱';
+
+    // Compact mode
+    if (profile.compact) {
+      document.documentElement.style.setProperty('--radius', '8px');
+      document.documentElement.style.setProperty('--radius-lg', '12px');
+    } else {
+      document.documentElement.style.setProperty('--radius', '12px');
+      document.documentElement.style.setProperty('--radius-lg', '16px');
+    }
+
+    // Aurora
+    document.querySelector('.aurora').style.display = profile.aurora ? '' : 'none';
+
+    // Clear password fields
+    document.getElementById('fieldOldPwd').value = '';
+    document.getElementById('fieldNewPwd').value = '';
+    document.getElementById('fieldConfirmPwd').value = '';
+
+    btn.classList.remove('saving');
+    btn.classList.add('saved');
+    btn.textContent = '✓ 已保存';
+    setTimeout(() => { btn.classList.remove('saved'); btn.textContent = '保存更改'; }, 2000);
+    showToast('设置已保存', 'success');
+  }
+
+  // ===== EXPORT DATA =====
+  function exportData() {
+    const data = {
+      profile: JSON.parse(localStorage.getItem('leo_profile') || '{}'),
+      documents: JSON.parse(localStorage.getItem('leo_documents') || '[]'),
+      tasks: JSON.parse(localStorage.getItem('leo_tasks') || '[]'),
+      categories: JSON.parse(localStorage.getItem('leo_categories') || '[]'),
+      tags: JSON.parse(localStorage.getItem('leo_tags') || '[]'),
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `leoai-export-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('数据已导出', 'success');
+  }
+
+  // ===== DELETE ACCOUNT =====
+  function confirmDelete() {
+    if (!confirm('⚠️ 确定要注销账号吗？\n\n此操作将：\n• 删除你的所有文档和任务记录\n• 永久删除账号，无法恢复\n\n建议先导出数据！')) return;
+    if (!confirm('最后一次确认：账号注销后，所有数据将永久丢失，确定吗？')) return;
+
+    // TODO: call DELETE /api/v1/account (需要后端支持)
+    localStorage.clear();
+    showToast('账号已注销，正在跳转...', 'warning');
+    setTimeout(() => location.href = '/auth', 1500);
+  }
+
+  // ===== INIT =====
+  loadProfile();
+</script>
+</body>
+</html>

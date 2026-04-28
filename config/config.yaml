@@ -1,0 +1,18 @@
+mysql:
+  dsn: "root:20040813@tcp(127.0.0.1:3306)/leoai?charset=utf8mb4&parseTime=True&loc=Local"
+
+redis:
+  addr: "127.0.0.1:6379"
+  password: "20040813"
+deepseek:
+  api_key: "sk-a4baf9a0eb1d4549925a3b1d4b65932d"   # ← 改成你的真实密钥
+
+jwt:
+  secret: "leoai-secret-key-2026"
+
+chroma:
+  url: "http://localhost:8000"
+
+siliconflow:
+  api_key: "sk-waxdpwetydwppdorqyrwhmfabcpfaucewuvsohbytzsbkqty"
+  base_url: "https://api.siliconflow.cn/v1"

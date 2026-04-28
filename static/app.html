@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeoAI — 工作台</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif; background: #07071a; color: #e2e8f0; min-height: 100vh; overflow-x: hidden; }
+
+    .aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .aurora-bg {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 10% 10%, rgba(99,102,241,0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 90% 85%, rgba(6,182,212,0.14) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 35% at 60% 45%, rgba(168,85,247,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 35% 30% at 80% 15%, rgba(245,158,11,0.08) 0%, transparent 70%);
+    }
+    .grid-overlay { position: fixed; inset: 0; z-index: 0; pointer-events: none; background-image: linear-gradient(rgba(99,102,241,0.03) 1px,transparent 1px), linear-gradient(90deg,rgba(99,102,241,0.03) 1px,transparent 1px); background-size: 60px 60px; }
+
+    .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 240px; background: rgba(7,7,26,0.82); border-right: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px); z-index: 100; display: flex; flex-direction: column; transition: transform 0.35s cubic-bezier(0.16,1,0.3,1); }
+    .sidebar-logo { padding: 20px 18px 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .logo-mark { width: 32px; height: 32px; background: linear-gradient(135deg,#6366f1,#8b5cf6,#ec4899); background-size: 200% 200%; animation: logoGrad 5s ease infinite; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 20px rgba(99,102,241,0.5); }
+    @keyframes logoGrad { 0%,100%{background-position:0% 50%;} 50%{background-position:100% 50%;} }
+    .logo-mark svg { width:16px;height:16px;fill:white; }
+    .logo-text { font-size:15px;font-weight:800;background:linear-gradient(90deg,#fff,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-0.3px; }
+
+    .nav-section { padding: 14px 10px 4px; }
+    .nav-label { font-size:10px;font-weight:700;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:1.2px;padding:0 10px;margin-bottom:4px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; font-size: 13.5px; font-weight: 500; color: rgba(255,255,255,0.45); cursor: pointer; transition: all 0.2s ease; margin-bottom: 1px; border: 1px solid transparent; text-decoration: none; }
+    .nav-item:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.05); }
+    .nav-item.active { color: white; background: linear-gradient(135deg,rgba(99,102,241,0.22),rgba(139,92,246,0.12)); border-color: rgba(99,102,241,0.25); box-shadow: 0 2px 16px rgba(99,102,241,0.12), inset 0 0 20px rgba(99,102,241,0.04); }
+    .nav-item .nav-icon { width:16px;height:16px;opacity:0.65;flex-shrink:0;transition:opacity 0.2s; }
+    .nav-item.active .nav-icon, .nav-item:hover .nav-icon { opacity:1; }
+
+    .sidebar-footer { margin-top: auto; padding: 14px 10px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .user-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; cursor: pointer; transition: background 0.2s, border-color 0.2s; position: relative; }
+    .user-card:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.1); }
+    .user-avatar { width: 30px; height: 30px; background: linear-gradient(135deg,#6366f1,#ec4899); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.85); white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .user-plan { font-size: 10.5px; color: rgba(255,255,255,0.3); margin-top: 1px; }
+    .plan-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; margin-top: 3px; }
+    .plan-badge.free { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.45); border: 1px solid rgba(255,255,255,0.12); }
+    .plan-badge.pro { background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.4); }
+    .logout-btn { background:none;border:none;color:rgba(255,255,255,0.25);cursor:pointer;padding:4px;border-radius:6px;transition:color 0.2s,background 0.2s;display:flex;align-items:center;justify-content:center; }
+    .logout-btn:hover { color:rgba(239,68,68,0.8);background:rgba(239,68,68,0.1); }
+    .upgrade-btn { display: none; padding: 4px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 700; border: none; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+    .upgrade-btn.show { display: inline-flex; align-items: center; gap: 4px; }
+    .upgrade-btn:hover { transform: scale(1.05); }
+
+    /* ===== UPGRADE MODAL ===== */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; opacity: 0; pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: #0f0f23; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; width: 100%; max-width: 480px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+      transform: scale(0.92) translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      overflow: hidden;
+    }
+    .modal-overlay.open .modal { transform: scale(1) translateY(0); }
+    .modal-header {
+      padding: 28px 28px 20px;
+      background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(99,102,241,0.12));
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 20px; right: 20px;
+      width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.5); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.12); color: white; }
+    .modal-eyebrow { font-size: 11px; font-weight: 700; color: #fbbf24; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+    .modal-title { font-size: 22px; font-weight: 800; color: white; margin-bottom: 4px; }
+    .modal-subtitle { font-size: 13px; color: rgba(255,255,255,0.45); }
+    .modal-price-tag { display: inline-flex; align-items: baseline; gap: 3px; margin-top: 12px; }
+    .price-amount { font-size: 36px; font-weight: 800; color: #fbbf24; }
+    .price-currency { font-size: 18px; font-weight: 700; color: #fbbf24; }
+    .price-period { font-size: 13px; color: rgba(255,255,255,0.4); }
+    .modal-body { padding: 24px 28px 28px; }
+    .feature-list { list-style: none; margin: 0 0 24px 0; padding: 0; }
+    .feature-list li {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 13.5px; color: rgba(255,255,255,0.75);
+    }
+    .feature-list li:last-child { border-bottom: none; }
+    .feature-list li .check-icon { color: #34d399; flex-shrink: 0; margin-top: 2px; }
+    .current-plan-note {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 16px; border-radius: 10px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      font-size: 12.5px; color: rgba(255,255,255,0.45); margin-bottom: 16px;
+    }
+    .current-plan-note .plan-tag { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
+    .btn-upgrade {
+      width: 100%; padding: 14px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 4px 20px rgba(245,158,11,0.3);
+    }
+    .btn-upgrade:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(245,158,11,0.4); }
+    .btn-upgrade:active { transform: translateY(0); }
+    .btn-upgrade.disabled { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.3); cursor: not-allowed; box-shadow: none; }
+    .btn-upgrade.disabled:hover { transform: none; box-shadow: none; }
+    .payment-note { text-align: center; font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 10px; }
+    .pro-features-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+    .pro-feature-chip { display: flex; align-items: center; gap: 7px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); font-size: 12px; color: rgba(255,255,255,0.6); }
+    .pro-feature-chip .chip-icon { font-size: 15px; flex-shrink: 0; }
+
+    .topbar { display: none; position: fixed; top:0;left:0;right:0; z-index:200; height:56px; background: rgba(7,7,26,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.07); align-items: center; padding: 0 16px; gap: 14px; }
+    .menu-btn { background:none;border:none;cursor:pointer;display:flex;flex-direction:column;gap:5px;padding:4px; }
+    .menu-btn span { display:block;width:22px;height:2px;background:rgba(255,255,255,0.6);border-radius:2px;transition:all 0.3s; }
+    .topbar-title { font-size:15px;font-weight:800;background:linear-gradient(90deg,#fff,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+    .topbar-right { margin-left: auto; }
+    .topbar-avatar { width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#ec4899);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white; }
+    .sidebar-overlay { display:none;position:fixed;inset:0;z-index:99;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px); }
+
+    .main { margin-left: 240px; min-height: 100vh; position: relative; z-index: 10; }
+
+    .page-header { padding: 36px 40px 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; animation: headerIn 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+    @keyframes headerIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+    .page-title { font-size:24px;font-weight:800;color:white;letter-spacing:-0.5px; }
+    .page-subtitle { font-size:13px;color:rgba(255,255,255,0.35);margin-top:4px; }
+    .header-actions { display:flex;gap:8px;align-items:center;flex-shrink:0; }
+
+    .section { display: none; padding: 28px 40px 80px; animation: sectionIn 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+    .section.active { display: block; }
+    @keyframes sectionIn { from { opacity:0;transform:translateY(16px);} to { opacity:1;transform:none;} }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 24px; }
+    .stat-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px 20px 18px; transition: all 0.25s ease; position: relative; overflow: hidden; }
+    .stat-card::before { content:'';position:absolute;top:0;left:0;right:0;height:2px; background: var(--accent, linear-gradient(90deg,#6366f1,#8b5cf6)); opacity: 0.8; }
+    .stat-card:hover { background: rgba(255,255,255,0.07); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.35); border-color: rgba(255,255,255,0.12); }
+    .stat-label { font-size:11px;color:rgba(255,255,255,0.4);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.8px; }
+    .stat-value { font-size:30px;font-weight:800;color:white;letter-spacing:-1px; }
+    .stat-change { font-size:11px;color:rgba(34,197,94,0.8);margin-top:4px;font-weight:500; }
+    .stat-icon { position:absolute;right:16px;top:16px;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;background: rgba(255,255,255,0.06); }
+
+    .panel { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; overflow: hidden; backdrop-filter: blur(12px); }
+    .panel-header { padding: 18px 22px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .panel-title { font-size:14px;font-weight:700;color:white;display:flex;align-items:center;gap:8px; }
+    .panel-body { padding: 22px; }
+
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; text-decoration: none; }
+    .btn svg { width:13px;height:13px;flex-shrink:0; }
+    .btn-primary { background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; box-shadow: 0 4px 16px rgba(99,102,241,0.35); position:relative;overflow:hidden; }
+    .btn-primary::after { content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);animation:shimmer 2.8s infinite; }
+    @keyframes shimmer { 0%{left:-100%;} 60%{left:200%;} 100%{left:200%;} }
+    .btn-primary:hover { transform:translateY(-1px);box-shadow:0 6px 24px rgba(99,102,241,0.5); }
+    .btn-primary:active { transform:translateY(0); }
+    .btn-ghost { background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.7); }
+    .btn-ghost:hover { background:rgba(255,255,255,0.1);color:white;border-color:rgba(255,255,255,0.15); }
+    .btn-danger { background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.2);color:#fca5a5; }
+    .btn-danger:hover { background:rgba(239,68,68,0.2); }
+    .btn-sm { padding:5px 12px;font-size:12px; }
+
+    .form-row { margin-bottom: 16px; }
+    .form-label { display:block;font-size:11.5px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:7px; }
+    .form-input, .form-textarea, .form-select { width:100%;padding:11px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:white;font-size:14px;outline:none;transition:all 0.2s ease;font-family:inherit; }
+    .form-input::placeholder, .form-textarea::placeholder { color:rgba(255,255,255,0.2); }
+    .form-input:focus, .form-textarea:focus, .form-select:focus { border-color:rgba(99,102,241,0.6);background:rgba(99,102,241,0.08);box-shadow:0 0 0 3px rgba(99,102,241,0.15); }
+    .form-textarea { resize:vertical;min-height:120px;line-height:1.7; }
+    .form-select { appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(255,255,255,0.4)' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;cursor:pointer; }
+    .form-select option { background:#1a1a2e;color:white; }
+
+    .upload-zone { border: 2px dashed rgba(99,102,241,0.3); border-radius: 14px; padding: 36px 24px; text-align: center; cursor: pointer; transition: all 0.25s ease; background: rgba(99,102,241,0.03); }
+    .upload-zone:hover, .upload-zone.drag-over { border-color: rgba(99,102,241,0.7); background: rgba(99,102,241,0.08); }
+    .upload-icon { margin-bottom:12px; }
+    .upload-icon svg { width:40px;height:40px;stroke:rgba(99,102,241,0.7);fill:none; }
+    .upload-text { font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:4px;font-weight:500; }
+    .upload-hint { font-size:12px;color:rgba(255,255,255,0.25); }
+    .upload-input { display:none; }
+
+    .badge { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700; }
+    .badge-pending { background:rgba(251,191,36,0.12);color:#fde68a;border:1px solid rgba(251,191,36,0.2); }
+    .badge-processing { background:rgba(59,130,246,0.12);color:#93c5fd;border:1px solid rgba(59,130,246,0.2); }
+    .badge-completed { background:rgba(34,197,94,0.12);color:#86efac;border:1px solid rgba(34,197,94,0.2); }
+    .badge-failed { background:rgba(239,68,68,0.12);color:#fca5a5;border:1px solid rgba(239,68,68,0.2); }
+    .badge-dot { width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0; }
+    .badge-processing .badge-dot { animation:pulse 1.2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;}50%{opacity:0.3;} }
+
+    .data-table { width:100%;border-collapse:collapse; }
+    .data-table th { text-align:left;font-size:11px;font-weight:700;color:rgba(255,255,255,0.28);text-transform:uppercase;letter-spacing:0.8px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.06); }
+    .data-table td { padding:13px 14px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13.5px;color:rgba(255,255,255,0.7);vertical-align:middle; }
+    .data-table tr:last-child td { border-bottom:none; }
+    .data-table tr:hover td { background:rgba(255,255,255,0.02); }
+    .doc-title { color:white;font-weight:600; }
+    .doc-meta { font-size:11.5px;color:rgba(255,255,255,0.3);margin-top:3px; }
+
+    .ai-output { background: rgba(6,6,15,0.6); border: 1px solid rgba(99,102,241,0.2); border-radius: 14px; padding: 20px; min-height: 120px; font-size: 14px; line-height: 1.8; color: rgba(255,255,255,0.8); white-space: pre-wrap; word-break: break-word; position: relative; overflow: hidden; }
+    .ai-output::before { content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,0.6),rgba(139,92,246,0.6),transparent); }
+    .ai-placeholder { color:rgba(255,255,255,0.2);font-style:italic;font-size:13px; }
+    .typing-cursor::after { content:'|';animation:blink 0.8s infinite;color:#a5b4fc;margin-left:2px; }
+    @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+    .msg { padding:11px 15px;border-radius:10px;font-size:13px;margin-top:12px;display:none; }
+    .msg.show { display:block; }
+    .msg.success { background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);color:#86efac; }
+    .msg.error { background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#fca5a5; }
+    .msg.info { background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);color:#a5b4fc;display:flex;align-items:center;gap:8px; }
+
+    .spinner { display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,0.25);border-top-color:white;border-radius:50%;animation:spin 0.6s linear infinite;vertical-align:middle; }
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    .empty-state { text-align:center;padding:60px 24px; }
+    .empty-icon { font-size:44px;margin-bottom:14px;opacity:0.35; }
+    .empty-text { font-size:14px;color:rgba(255,255,255,0.3);line-height:1.6; }
+
+    .progress-bar { height:3px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;margin-top:8px; }
+    .progress-fill { height:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6,#ec4899);border-radius:3px;transition:width 0.5s ease;background-size:200% 100%;animation:progressAnim 1.5s linear infinite; }
+    @keyframes progressAnim{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+    .task-detail { display:none;margin-top:20px;animation:sectionIn 0.3s ease both; }
+    .task-detail.show { display:block; }
+    .grid-2 { display:grid;grid-template-columns:1fr 1fr;gap:20px; }
+
+    ::-webkit-scrollbar{width:5px;height:5px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px;}
+    ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2);}
+
+    /* ===== TASK LIST ===== */
+    .task-stats-bar {
+      display: flex; gap: 0; border-radius: 12px; overflow: hidden;
+      border: 1px solid var(--border); margin-bottom: 16px;
+      background: rgba(255,255,255,0.03);
+    }
+    .tstat {
+      flex: 1; padding: 16px 12px; text-align: center;
+      border-right: 1px solid var(--border); cursor: pointer; transition: background 0.15s;
+    }
+    .tstat:last-child { border-right: none; }
+    .tstat:hover { background: rgba(255,255,255,0.04); }
+    .tstat.active { background: rgba(255,255,255,0.06); }
+    .tstat-num { font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+    .tstat-label { font-size: 11px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.05em; }
+    .tstat-processing .tstat-num { color: #a78bfa; }
+    .tstat-completed .tstat-num { color: #34d399; }
+    .tstat-failed .tstat-num { color: #f87171; }
+
+    .task-filter-tabs {
+      display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .task-tab {
+      padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-secondary);
+      font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .task-tab:hover { background: var(--surface-hover); color: var(--text); }
+    .task-tab.active { background: rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.5); color: #a5b4fc; }
+
+    .task-list { display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
+
+    /* Task card */
+    .task-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 18px; border-radius: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      cursor: pointer; transition: all 0.15s;
+      animation: taskCardIn 0.25s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes taskCardIn { from { opacity:0;transform:translateY(8px);} to { opacity:1;transform:none;} }
+    .task-card:hover { background: var(--surface-hover); border-color: var(--border-strong); transform: translateY(-1px); }
+    .task-card.selected { border-color: rgba(99,102,241,0.5); background: rgba(99,102,241,0.08); }
+
+    .tc-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 18px;
+    }
+    .tc-icon.generate { background: rgba(99,102,241,0.15); }
+    .tc-icon.improve { background: rgba(16,185,129,0.15); }
+    .tc-icon.rag { background: rgba(245,158,11,0.15); }
+
+    .tc-body { flex: 1; min-width: 0; }
+    .tc-type-label { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 3px; }
+    .tc-type-label.generate { color: #818cf8; }
+    .tc-type-label.improve { color: #34d399; }
+    .tc-type-label.rag { color: #fbbf24; }
+    .tc-input {
+      font-size: 13px; color: var(--text-secondary); white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
+    }
+    .tc-time { font-size: 11px; color: var(--text-muted); }
+
+    .tc-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+    .tc-badge { padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .tc-badge.pending, .tc-badge.processing { background: rgba(167,139,250,0.2); color: #a78bfa; }
+    .tc-badge.completed { background: rgba(52,211,153,0.2); color: #34d399; }
+    .tc-badge.failed { background: rgba(248,113,113,0.2); color: #f87171; }
+    .tc-duration { font-size: 11px; color: var(--text-muted); }
+
+    /* Task detail */
+    .td-meta-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 12px; margin-bottom: 20px; padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .td-meta-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .td-meta-value { font-size: 14px; font-weight: 600; color: var(--text); word-break: break-all; }
+    .td-section-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    .td-output { min-height: 80px; max-height: 300px; overflow-y: auto; font-size: 13px; }
+
+    /* Spinning animation for processing badge dot */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .badge-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 5px; animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+    @media (max-width: 1024px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .grid-2 { grid-template-columns: 1fr; } .td-meta-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } .topbar { display: flex; } .main { margin-left: 0; padding-top: 56px; } .page-header { padding: 24px 18px 0; } .section { padding: 20px 18px 80px; } .page-title { font-size: 20px; } .task-stats-bar { flex-wrap: wrap; } .tstat { flex: 1 1 40%; } }
+    @media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; } .stat-value { font-size: 24px; } .data-table th:nth-child(3), .data-table td:nth-child(3) { display: none; } .data-table th:nth-child(4), .data-table td:nth-child(4) { display: none; } .td-meta-grid { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="aurora"><div class="aurora-bg"></div></div>
+<div class="grid-overlay"></div>
+
+<div class="topbar" id="topbar">
+  <button class="menu-btn" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+  <div class="topbar-title">LeoAI</div>
+  <div class="topbar-right"><div class="topbar-avatar" id="topbarAvatar">?</div></div>
+</div>
+<div class="sidebar-overlay" id="overlay" onclick="toggleSidebar()" style="display:none;opacity:0;transition:opacity 0.3s;"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+    <span class="logo-text">LeoAI</span>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">主菜单</div>
+    <a class="nav-item active" href="#" onclick="gotoSection('dashboard');return false;">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      概览
+    </a>
+    <a class="nav-item" href="#" onclick="gotoSection('documents');return false;">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      文档管理
+    </a>
+    <a class="nav-item" href="#" onclick="gotoSection('ai');return false;">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 017 7 7 7 0 01-7 7 7 7 0 01-7-7 7 7 0 017-7z"/><path d="M9 12l2 2 4-4"/></svg>
+      AI 生成
+    </a>
+    <a class="nav-item" href="#" onclick="gotoSection('tasks');return false;">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      任务中心
+    </a>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">内容管理</div>
+    <a class="nav-item" href="#" onclick="gotoSection('categories');return false;">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+      分类管理
+    </a>
+    <a class="nav-item" href="#" onclick="gotoSection('tags');return false;">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+      标签管理
+    </a>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">系统</div>
+    <a class="nav-item" href="#" onclick="gotoSection('settings');return false;">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      个人设置
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="user-card" id="userCard">
+      <div class="user-avatar" id="userAvatar">?</div>
+      <div class="user-info">
+        <div class="user-name" id="userName">加载中...</div>
+        <span class="plan-badge free" id="planBadge">Free</span>
+      </div>
+      <button class="upgrade-btn show" id="upgradeBtn" onclick="openUpgradeModal()">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        升级
+      </button>
+      <button class="logout-btn" onclick="doLogout()" title="退出登录">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<!-- ===== UPGRADE MODAL ===== -->
+<div class="modal-overlay" id="upgradeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-eyebrow">💎 PRO 计划</span>
+      <div class="modal-title">选择你的计划</div>
+      <div class="modal-subtitle">解锁全部功能，加速你的 AI 工作流</div>
+      <div class="modal-price-tag">
+        <span class="price-currency">$</span>
+        <span class="price-amount">10</span>
+        <span class="price-period">/ 月</span>
+      </div>
+      <button class="modal-close" onclick="closeUpgradeModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="current-plan-note">
+        <span class="plan-tag" id="modalPlanTag">当前：Free</span>
+        <span>在下方选择要切换的计划</span>
+      </div>
+      <!-- Plan switcher -->
+      <div class="pro-features-grid" id="planSwitcher">
+        <div class="pro-feature-chip" style="border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.08);" onclick="selectPlan('free')">
+          <span class="chip-icon">📦</span> Free
+        </div>
+        <div class="pro-feature-chip" style="border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.08);" onclick="selectPlan('pro')">
+          <span class="chip-icon">💎</span> Pro
+        </div>
+      </div>
+      <ul class="feature-list" id="featureList">
+        <li><span class="check-icon">✓</span> 无限 AI 任务</li>
+        <li><span class="check-icon">✓</span> 优先任务处理队列</li>
+        <li><span class="check-icon">✓</span> 无限文档上传</li>
+        <li><span class="check-icon">✓</span> 高级 RAG 文档问答</li>
+        <li><span class="check-icon">✓</span> 专属客服支持</li>
+      </ul>
+      <button class="btn-upgrade" id="confirmUpgradeBtn" onclick="confirmUpgrade()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        立即升级 — $10 / 月
+      </button>
+      <div class="payment-note">🔒 安全支付 · 随时可取消 · 暂未接入支付接口</div>
+    </div>
+  </div>
+</div>
+
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div class="page-header" id="header-dashboard"><div><div class="page-title">👋 欢迎回来</div><div class="page-subtitle" id="header-subtitle">正在加载你的工作台...</div></div><div class="header-actions"><button class="btn btn-ghost btn-sm" onclick="gotoSection('documents')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>上传文档</button><button class="btn btn-primary btn-sm" onclick="gotoSection('ai')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 017 7 7 7 0 01-7 7 7 7 0 01-7-7 7 7 0 017-7z"/></svg>发起 AI 任务</button></div></div>
+  <section class="section active" id="section-dashboard">
+    <div class="stats-grid">
+      <div class="stat-card" style="--accent:linear-gradient(90deg,#6366f1,#8b5cf6)"><div class="stat-label">文档总数</div><div class="stat-value" id="stat-docs">—</div><div class="stat-change">↑ 持续增长中</div><div class="stat-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div></div>
+      <div class="stat-card" style="--accent:linear-gradient(90deg,#06b6d4,#3b82f6)"><div class="stat-label">已完成任务</div><div class="stat-value" id="stat-done">—</div><div class="stat-change">✓ 处理成功</div><div class="stat-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div></div>
+      <div class="stat-card" style="--accent:linear-gradient(90deg,#a855f7,#ec4899)"><div class="stat-label">处理中任务</div><div class="stat-value" id="stat-processing">—</div><div class="stat-change">⏳ 进行中</div><div class="stat-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>
+      <div class="stat-card" style="--accent:linear-gradient(90deg,#f59e0b,#f97316)"><div class="stat-label">分类总数</div><div class="stat-value" id="stat-categories">—</div><div class="stat-change">📁 知识分类</div><div class="stat-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></div></div>
+    </div>
+    <div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div class="panel"><div class="panel-header"><span class="panel-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>快速开始</span></div><div class="panel-body" style="display:flex;flex-direction:column;gap:8px;"><button class="btn btn-primary" onclick="gotoSection('ai')" style="justify-content:center;padding:12px 0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 017 7 7 7 0 01-7 7 7 7 0 01-7-7 7 7 0 017-7z"/><path d="M9 12l2 2 4-4"/></svg>AI 内容生成</button><button class="btn btn-ghost" onclick="gotoSection('documents')" style="justify-content:center;padding:10px 0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>上传文档</button><button class="btn btn-ghost" onclick="gotoSection('tasks')" style="justify-content:center;padding:10px 0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>查看任务进度</button></div></div>
+      <div class="panel"><div class="panel-header"><span class="panel-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>最近文档</span><button class="btn btn-ghost btn-sm" onclick="gotoSection('documents')">查看全部</button></div><div class="panel-body" id="recent-docs-panel" style="padding:0;"><div class="empty-state"><div class="spinner"></div></div></div></div>
+    </div>
+  </section>
+
+  <!-- DOCUMENTS -->
+  <div class="page-header" id="header-documents" style="display:none"><div><div class="page-title">📄 文档管理</div><div class="page-subtitle">上传、管理你的知识库文档</div></div><div class="header-actions"><button class="btn btn-primary" onclick="showUploadPanel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>上传文档</button></div></div>
+  <section class="section" id="section-documents">
+    <div class="panel" id="upload-panel" style="margin-bottom:20px;display:none;"><div class="panel-header"><span class="panel-title">上传新文档</span><button class="btn btn-ghost btn-sm" onclick="hideUploadPanel()">收起</button></div><div class="panel-body"><div class="form-row"><label class="form-label">文档标题</label><input type="text" class="form-input" id="doc-title" placeholder="为文档起个名字..." /></div><div class="form-row"><label class="form-label">选择文件</label><div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()"><div class="upload-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div class="upload-text" id="uploadText">点击选择或拖拽文件到此处</div><div class="upload-hint">支持 PDF、TXT、DOCX、MD 等格式</div><input type="file" class="upload-input" id="fileInput" accept=".pdf,.txt,.docx,.md" onchange="onFileSelect(event)" /></div></div><button class="btn btn-primary" onclick="doUpload()" style="width:100%;justify-content:center;padding:12px 0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>确认上传</button><div class="msg" id="upload-msg"></div></div></div>
+    <div class="panel"><div class="panel-header"><span class="panel-title">我的文档</span><button class="btn btn-ghost btn-sm" onclick="loadDocuments()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>刷新</button></div><div class="panel-body" style="padding:0;"><div id="doc-list-container"><div class="empty-state"><div class="spinner"></div></div></div></div></div>
+  </section>
+
+  <!-- AI -->
+  <div class="page-header" id="header-ai" style="display:none"><div><div class="page-title">✨ AI 内容生成</div><div class="page-subtitle">基于主题或文档，让 AI 为你创作优质内容</div></div></div>
+  <section class="section" id="section-ai">
+    <div class="grid-2">
+      <div class="panel"><div class="panel-header"><span class="panel-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>任务配置</span></div><div class="panel-body"><div class="form-row"><label class="form-label">任务类型</label><select class="form-select" id="ai-task-type"><option value="generate">✨ 生成内容 — 根据主题创作</option><option value="improve">🔧 优化改写 — 提升已有内容</option><option value="rag">🔍 文档问答 — 基于上传文档回答</option></select></div><div class="form-row"><label class="form-label">输入内容 / 主题描述</label><textarea class="form-textarea" id="ai-input" placeholder="例如：请帮我写一篇关于机器学习入门的技术博客..."></textarea></div><div class="form-row" id="doc-select-row" style="display:none;"><label class="form-label">关联文档（可选）</label><select class="form-select" id="ai-doc-id"><option value="">不关联文档</option></select></div><button class="btn btn-primary" onclick="doSubmitTask()" style="width:100%;justify-content:center;padding:13px 0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>提交任务</button><div class="msg" id="ai-msg"></div></div></div>
+      <div class="panel" style="display:flex;flex-direction:column;"><div class="panel-header"><span class="panel-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2"><path d="M12 2a7 7 0 017 7 7 7 0 01-7 7 7 7 0 01-7-7 7 7 0 017-7z"/><path d="M9 12l2 2 4-4"/></svg>AI 输出</span><span class="badge badge-pending" id="ai-status-badge" style="display:none;"></span></div><div class="panel-body" style="flex:1;display:flex;flex-direction:column;"><div class="ai-output" id="ai-output" style="flex:1;"><span class="ai-placeholder">提交任务后，AI 生成结果将在这里实时显示...</span></div><div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-ghost btn-sm" onclick="copyOutput()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>复制结果</button><button class="btn btn-ghost btn-sm" onclick="clearOutput()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>清空</button></div></div></div>
+    </div>
+  </section>
+
+  <!-- TASKS -->
+  <div class="page-header" id="header-tasks" style="display:none"><div><div class="page-title">⏱️ 任务中心</div><div class="page-subtitle">所有 AI 任务一目了然，支持查看详情和重新查询</div></div><div class="header-actions"><button class="btn btn-ghost btn-sm" onclick="refreshTasks()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>刷新</button></div></div>
+  <section class="section" id="section-tasks">
+    <!-- Stats bar -->
+    <div class="task-stats-bar" id="task-stats-bar">
+      <div class="tstat" onclick="setTaskFilter('all')">
+        <div class="tstat-num" id="tstat-all">0</div>
+        <div class="tstat-label">全部</div>
+      </div>
+      <div class="tstat tstat-processing" onclick="setTaskFilter('processing')">
+        <div class="tstat-num" id="tstat-processing">0</div>
+        <div class="tstat-label">进行中</div>
+      </div>
+      <div class="tstat tstat-completed" onclick="setTaskFilter('completed')">
+        <div class="tstat-num" id="tstat-completed">0</div>
+        <div class="tstat-label">已完成</div>
+      </div>
+      <div class="tstat tstat-failed" onclick="setTaskFilter('failed')">
+        <div class="tstat-num" id="tstat-failed">0</div>
+        <div class="tstat-label">失败</div>
+      </div>
+    </div>
+    <!-- Filter tabs -->
+    <div class="task-filter-tabs" id="task-filter-tabs">
+      <button class="task-tab active" data-filter="all" onclick="setTaskFilter('all')">全部</button>
+      <button class="task-tab" data-filter="processing" onclick="setTaskFilter('processing')">⏳ 进行中</button>
+      <button class="task-tab" data-filter="completed" onclick="setTaskFilter('completed')">✓ 已完成</button>
+      <button class="task-tab" data-filter="failed" onclick="setTaskFilter('failed')">✗ 失败</button>
+    </div>
+    <!-- Task list -->
+    <div class="task-list" id="task-list">
+      <div class="empty-state" id="task-list-empty">
+        <div class="empty-icon">📋</div>
+        <div class="empty-text">暂无任务记录，<a href="#" onclick="gotoSection('ai');return false;" style="color:#a5b4fc;">去提交</a>你的第一个 AI 任务</div>
+      </div>
+    </div>
+    <!-- Task detail -->
+    <div class="task-detail panel" id="task-result" style="margin-top:20px;display:none;">
+      <div class="panel-header">
+        <span class="panel-title" id="td-panel-title">任务详情</span>
+        <span id="task-result-badge"></span>
+        <button class="btn btn-ghost btn-sm" onclick="closeTaskDetail()" style="margin-left:auto;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="panel-body">
+        <div class="td-meta-grid">
+          <div><div class="td-meta-label">任务 ID</div><div class="td-meta-value" id="tr-id">—</div></div>
+          <div><div class="td-meta-label">任务类型</div><div class="td-meta-value" id="tr-type">—</div></div>
+          <div><div class="td-meta-label">创建时间</div><div class="td-meta-value" id="tr-created">—</div></div>
+          <div><div class="td-meta-label">完成时间</div><div class="td-meta-value" id="tr-completed">—</div></div>
+        </div>
+        <div class="td-section-label">输入内容</div>
+        <div class="ai-output td-output" id="tr-input"></div>
+        <div class="td-section-label" style="margin-top:16px;">输出结果</div>
+        <div class="ai-output td-output" id="tr-output"></div>
+        <div id="tr-error" style="display:none;margin-top:12px;" class="msg error show"></div>
+        <div id="poll-progress" style="display:none;margin-top:14px;">
+          <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+            <span class="spinner" style="width:11px;height:11px;border-width:1.5px;"></span>
+            任务处理中，每 2.5 秒自动刷新...
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATEGORIES -->
+  <div class="page-header" id="header-categories" style="display:none"><div><div class="page-title">📁 分类管理</div><div class="page-subtitle">为你的文档创建和管理分类体系</div></div><div class="header-actions"><button class="btn btn-primary" onclick="showAddCategory()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建分类</button></div></div>
+  <section class="section" id="section-categories">
+    <div class="panel" id="add-category-panel" style="margin-bottom:20px;display:none;"><div class="panel-header"><span class="panel-title" id="category-panel-title">新建分类</span><button class="btn btn-ghost btn-sm" onclick="hideAddCategory()">收起</button></div><div class="panel-body"><div class="form-row"><label class="form-label">分类名称</label><input type="text" class="form-input" id="cat-name" placeholder="例如：技术博客、产品设计、随笔..." /></div><div class="form-row"><label class="form-label">分类描述（可选）</label><input type="text" class="form-input" id="cat-desc" placeholder="简单描述这个分类的用途..." /></div><div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="doSaveCategory()" style="flex:1;justify-content:center;padding:11px 0;">保存</button><button class="btn btn-ghost" onclick="hideAddCategory()">取消</button></div><div class="msg" id="cat-msg"></div></div></div>
+    <div class="panel"><div class="panel-header"><span class="panel-title">我的分类</span></div><div class="panel-body" style="padding:0;"><div id="cat-list-container"><div class="empty-state"><div class="empty-icon">📁</div><div class="empty-text">暂无分类，创建你的第一个分类吧</div></div></div></div></div>
+  </section>
+
+  <!-- TAGS -->
+  <div class="page-header" id="header-tags" style="display:none"><div><div class="page-title">🏷️ 标签管理</div><div class="page-subtitle">用标签标记文档，快速检索相关内容</div></div><div class="header-actions"><button class="btn btn-primary" onclick="showAddTag()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>新建标签</button></div></div>
+  <section class="section" id="section-tags">
+    <div class="panel" id="add-tag-panel" style="margin-bottom:20px;display:none;"><div class="panel-header"><span class="panel-title">新建标签</span><button class="btn btn-ghost btn-sm" onclick="hideAddTag()">收起</button></div><div class="panel-body"><div class="form-row"><label class="form-label">标签名称</label><input type="text" class="form-input" id="tag-name" placeholder="例如：Go、React、效率工具..." /></div><div style="display:flex;gap:8px;"><button class="btn btn-primary" onclick="doSaveTag()" style="flex:1;justify-content:center;padding:11px 0;">保存</button><button class="btn btn-ghost" onclick="hideAddTag()">取消</button></div><div class="msg" id="tag-msg"></div></div></div>
+    <div class="panel"><div class="panel-header"><span class="panel-title">我的标签</span></div><div class="panel-body" id="tag-list-container"><div class="empty-state"><div class="empty-icon">🏷️</div><div class="empty-text">暂无标签，创建你的第一个标签吧</div></div></div></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <div class="page-header" id="header-settings" style="display:none"><div><div class="page-title">⚙️ 个人设置</div><div class="page-subtitle">管理你的账号信息和偏好设置</div></div></div>
+  <section class="section" id="section-settings">
+    <div class="grid-2">
+      <div class="panel"><div class="panel-header"><span class="panel-title">👤 账号信息</span></div><div class="panel-body"><div class="form-row"><label class="form-label">用户 ID</label><input type="text" class="form-input" id="set-user-id" readonly style="opacity:0.5;cursor:not-allowed;" /></div><div class="form-row"><label class="form-label">用户名</label><input type="text" class="form-input" id="set-username" placeholder="设置你的用户名..." /></div><div class="form-row"><label class="form-label">邮箱</label><input type="email" class="form-input" id="set-email" placeholder="your@email.com" /></div><button class="btn btn-primary" onclick="doSaveProfile()" style="width:100%;justify-content:center;padding:11px 0;">保存修改</button><div class="msg" id="profile-msg"></div></div></div>
+      <div class="panel"><div class="panel-header"><span class="panel-title">🔒 安全设置</span></div><div class="panel-body"><div class="form-row"><label class="form-label">当前密码</label><input type="password" class="form-input" id="set-old-pwd" placeholder="输入当前密码" /></div><div class="form-row"><label class="form-label">新密码</label><input type="password" class="form-input" id="set-new-pwd" placeholder="输入新密码（至少6位）" /></div><div class="form-row"><label class="form-label">确认新密码</label><input type="password" class="form-input" id="set-confirm-pwd" placeholder="再次输入新密码" /></div><button class="btn btn-danger" onclick="doChangePassword()" style="width:100%;justify-content:center;padding:11px 0;">修改密码</button><div class="msg" id="pwd-msg"></div></div></div>
+    </div>
+    <div style="margin-top:20px;" class="panel"><div class="panel-header" style="border-color:rgba(239,68,68,0.1);"><span class="panel-title" style="color:#fca5a5;">⚠️ 危险区域</span></div><div class="panel-body"><p style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:12px;">退出当前账号，所有本地数据将保留，下次登录可继续使用。</p><button class="btn btn-danger" onclick="doLogout()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>退出登录</button></div></div>
+  </section>
+
+</main>
+
+<script>
+const token = localStorage.getItem('leo_token');
+if (!token) location.href = '/auth';
+const API = '';
+const headers = () => ({ 'Content-Type':'application/json', 'Authorization':'Bearer '+localStorage.getItem('leo_token') });
+
+function toggleSidebar() {
+  const s = document.getElementById('sidebar'), o = document.getElementById('overlay');
+  const open = s.classList.toggle('open');
+  o.style.display = open ? 'block' : 'none';
+  requestAnimationFrame(() => o.style.opacity = open ? '1' : '0');
+  if (!open) setTimeout(() => o.style.display='none', 300);
+}
+
+const sections = ['dashboard','documents','ai','tasks','categories','tags','settings'];
+function gotoSection(id) {
+  if (!sections.includes(id)) return;
+  sections.forEach(s => {
+    const sec = document.getElementById('section-'+s);
+    const hdr = document.getElementById('header-'+s);
+    if (sec) sec.classList.toggle('active', s===id);
+    if (hdr) hdr.style.display = (s===id) ? 'flex' : 'none';
+  });
+  const navMap = ['dashboard','documents','ai','tasks','categories','tags','settings'];
+  document.querySelectorAll('.nav-item').forEach((el,i) => el.classList.toggle('active', navMap.indexOf(id) === i));
+  if (id==='documents') loadDocuments();
+  if (id==='dashboard') loadDashboard();
+  if (id==='ai') { loadDocsForAI(); clearOutput(); }
+  if (id==='categories') loadCategories();
+  if (id==='tags') loadTags();
+  if (id==='settings') loadSettings();
+  if (id==='tasks') { closeTaskDetail(); setTaskFilter('all'); loadTasks(); }
+  if (document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
+}
+
+function doLogout() { localStorage.removeItem('leo_token'); localStorage.removeItem('leo_user_id'); location.href = '/auth'; }
+
+function showMsg(id, type, text) { const el = document.getElementById(id); el.className = 'msg '+type+' show'; el.innerHTML = type==='info' ? `<span class="spinner"></span><span>${text}</span>` : text; }
+function hideMsg(id) { const el = document.getElementById(id); el.className = 'msg'; el.innerHTML = ''; }
+
+async function loadDashboard() {
+  try { const res = await fetch(API+'/api/v1/documents', { headers: headers() }); const data = await res.json(); const docs = data.documents || []; document.getElementById('stat-docs').textContent = docs.length; renderRecentDocs(docs.slice(0, 5)); } catch(e) { document.getElementById('stat-docs').textContent = '—'; }
+  document.getElementById('stat-done').textContent = '—'; document.getElementById('stat-processing').textContent = '—'; document.getElementById('stat-categories').textContent = JSON.parse(localStorage.getItem('leo_categories')||'[]').length;
+  document.getElementById('header-subtitle').textContent = '👋 欢迎使用 LeoAI 智能文档平台';
+}
+function renderRecentDocs(docs) {
+  const el = document.getElementById('recent-docs-panel');
+  if (!docs.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📄</div><div class="empty-text">暂无文档，<a href="#" onclick="gotoSection(\'documents\');return false;" style="color:#a5b4fc;">去上传</a>你的第一篇</div></div>'; return; }
+  el.innerHTML = '<table class="data-table"><tbody>' + docs.map(d => `<tr><td><div class="doc-title">${escHtml(d.title)}</div></td><td style="color:rgba(255,255,255,0.3);font-size:11.5px;white-space:nowrap;">${fmtDate(d.created_at)}</td></tr>`).join('') + '</tbody></table>';
+}
+
+function showUploadPanel() { document.getElementById('upload-panel').style.display='block'; }
+function hideUploadPanel() { document.getElementById('upload-panel').style.display='none'; }
+function onFileSelect(event) { const file = event.target.files[0]; if (file) document.getElementById('uploadText').textContent = '✓ 已选择：' + file.name; }
+const zone = document.getElementById('uploadZone');
+if (zone) { zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); }); zone.addEventListener('dragleave', () => zone.classList.remove('drag-over')); zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); const dt = e.dataTransfer; if (!dt.files.length) return; document.getElementById('fileInput').files = dt.files; document.getElementById('uploadText').textContent = '✓ 已选择：' + dt.files[0].name; }); }
+
+async function doUpload() {
+  const title = document.getElementById('doc-title').value.trim(); const fileInput = document.getElementById('fileInput');
+  if (!title) return showMsg('upload-msg','error','请填写文档标题');
+  if (!fileInput.files.length) return showMsg('upload-msg','error','请选择文件');
+  showMsg('upload-msg','info','正在上传...');
+  const fd = new FormData(); fd.append('title', title); fd.append('file', fileInput.files[0]);
+  try {
+    const res = await fetch(API+'/api/v1/documents', { method:'POST', headers:{ 'Authorization':'Bearer '+localStorage.getItem('leo_token') }, body:fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '上传失败');
+    showMsg('upload-msg','success','✓ 上传成功！');
+    document.getElementById('doc-title').value = ''; fileInput.value = ''; document.getElementById('uploadText').textContent = '点击选择或拖拽文件到此处';
+    setTimeout(() => { hideMsg('upload-msg'); hideUploadPanel(); loadDocuments(); }, 1200);
+  } catch(e) { showMsg('upload-msg','error','✗ '+e.message); }
+}
+
+async function loadDocuments() {
+  document.getElementById('doc-list-container').innerHTML = '<div class="empty-state"><div class="spinner"></div></div>';
+  try { const res = await fetch(API+'/api/v1/documents', { headers: headers() }); const data = await res.json(); renderDocList(data.documents || []); }
+  catch(e) { document.getElementById('doc-list-container').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">加载失败，请刷新重试</div></div>'; }
+}
+function renderDocList(docs) {
+  const container = document.getElementById('doc-list-container');
+  if (!docs.length) { container.innerHTML = '<div class="empty-state"><div class="empty-icon">📄</div><div class="empty-text">暂无文档，上传你的第一篇文档吧</div></div>'; return; }
+  container.innerHTML = '<table class="data-table"><thead><tr><th>文档</th><th>上传时间</th><th>操作</th></tr></thead><tbody>' + docs.map(d => `<tr><td><div class="doc-title">${escHtml(d.title)}</div><div class="doc-meta">ID: ${d.id}</div></td><td style="color:rgba(255,255,255,0.35);font-size:12px;white-space:nowrap;">${fmtDate(d.created_at)}</td><td><button class="btn btn-ghost btn-sm" onclick="useDocForAI(${d.id},'${escHtml(d.title)}')">用于 AI</button></td></tr>`).join('') + '</tbody></table>';
+}
+function useDocForAI(id, title) { gotoSection('ai'); document.getElementById('ai-task-type').value = 'rag'; toggleDocSelect(); document.getElementById('ai-doc-id').value = id; document.getElementById('ai-input').placeholder = `基于文档"${title}"，你想了解什么？`; }
+
+document.getElementById('ai-task-type').addEventListener('change', toggleDocSelect);
+function toggleDocSelect() { const v = document.getElementById('ai-task-type').value; document.getElementById('doc-select-row').style.display = (v==='rag'||v==='improve') ? 'block' : 'none'; }
+async function loadDocsForAI() { try { const res = await fetch(API+'/api/v1/documents', { headers: headers() }); const data = await res.json(); const sel = document.getElementById('ai-doc-id'); sel.innerHTML = '<option value="">不关联文档</option>'; (data.documents||[]).forEach(d => { const opt = document.createElement('option'); opt.value = d.id; opt.textContent = d.title; sel.appendChild(opt); }); } catch(e){} }
+
+let pollTimer = null;
+async function doSubmitTask() {
+  hideMsg('ai-msg');
+  const taskType = document.getElementById('ai-task-type').value; const input = document.getElementById('ai-input').value.trim(); const docId = parseInt(document.getElementById('ai-doc-id').value)||0;
+  if (!input) return showMsg('ai-msg','error','请输入内容描述');
+  showMsg('ai-msg','info','正在提交任务...');
+  const body = { task_type: taskType, input }; if (docId) body.document_id = docId;
+  try {
+    const res = await fetch(API+'/api/v1/tasks', { method:'POST', headers: headers(), body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error||'提交失败');
+    // Save to history immediately
+    saveTaskToHistory({ id: data.task_id, task_type: taskType, input, status: 'processing', created_at: new Date().toISOString() });
+    showMsg('ai-msg','success',`✓ 任务已提交，ID: ${data.task_id}，正在处理...`);
+    startPollingForOutput(data.task_id);
+  } catch(e) { showMsg('ai-msg','error','✗ '+e.message); }
+}
+function startPollingForOutput(taskId) {
+  const outputEl = document.getElementById('ai-output'); const badge = document.getElementById('ai-status-badge');
+  outputEl.innerHTML = '<span class="ai-placeholder typing-cursor">✨ AI 正在思考中...</span>';
+  badge.style.display='inline-flex'; badge.className='badge badge-processing'; badge.innerHTML='<span class="badge-dot"></span>处理中';
+  if (pollTimer) clearInterval(pollTimer);
+  let tries = 0;
+  pollTimer = setInterval(async () => {
+    tries++; if (tries > 60) { clearInterval(pollTimer); return; }
+    try {
+      const res = await fetch(API+`/api/v1/tasks/${taskId}`, { headers: headers() });
+      const task = await res.json();
+      saveTaskToHistory(task); // always sync to history
+      if (task.status === 'completed') {
+        clearInterval(pollTimer);
+        badge.className='badge badge-completed'; badge.innerHTML='<span class="badge-dot"></span>已完成';
+        outputEl.classList.remove('typing-cursor');
+        typewriterEffect(outputEl, task.output||'（无输出）');
+        hideMsg('ai-msg');
+      } else if (task.status === 'failed') {
+        clearInterval(pollTimer);
+        badge.className='badge badge-failed'; badge.innerHTML='<span class="badge-dot"></span>失败';
+        outputEl.innerHTML = `<span style="color:#fca5a5;">任务失败：${escHtml(task.error_msg||'未知错误')}</span>`;
+      }
+    } catch(e){}
+  }, 2000);
+}
+function typewriterEffect(el, text) { el.textContent = ''; let i = 0; const interval = setInterval(() => { if (i >= text.length) { clearInterval(interval); return; } el.textContent += text[i++]; el.scrollTop = el.scrollHeight; }, 16); }
+function copyOutput() { const text = document.getElementById('ai-output').textContent; navigator.clipboard.writeText(text).then(() => { const btn = event.currentTarget; btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> 已复制'; setTimeout(() => { btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 复制结果'; }, 1800); }); }
+function clearOutput() { const outputEl = document.getElementById('ai-output'); outputEl.innerHTML = '<span class="ai-placeholder">提交任务后，AI 生成结果将在这里实时显示...</span>'; document.getElementById('ai-status-badge').style.display='none'; if (pollTimer) clearInterval(pollTimer); hideMsg('ai-msg'); }
+
+let taskPollTimer = null;
+let currentTaskFilter = 'all';
+let currentTaskId = null;
+let taskRefreshInterval = null;
+
+// ===== TASK HISTORY (localStorage) =====
+function getTaskHistory() { return JSON.parse(localStorage.getItem('leo_tasks') || '[]'); }
+function saveTaskToHistory(task) {
+  const history = getTaskHistory();
+  const idx = history.findIndex(t => t.id === task.id);
+  const entry = { ...task, _local: true, _savedAt: new Date().toISOString() };
+  if (idx >= 0) history[idx] = entry; else history.unshift(entry);
+  // Keep max 100 tasks
+  if (history.length > 100) history.splice(100);
+  localStorage.setItem('leo_tasks', JSON.stringify(history));
+}
+function removeTaskFromHistory(id) {
+  const history = getTaskHistory().filter(t => t.id !== id);
+  localStorage.setItem('leo_tasks', JSON.stringify(history));
+}
+
+// ===== TASK LIST RENDERING =====
+const TASK_TYPE_MAP = { generate:'✨ 生成内容', improve:'🔧 优化改写', rag:'🔍 文档问答' };
+const TASK_TYPE_ICON = { generate:'✨', improve:'🔧', rag:'🔍' };
+
+function loadTasks() {
+  const history = getTaskHistory();
+  // Update stats
+  const all = history.length;
+  const processing = history.filter(t => t.status === 'pending' || t.status === 'processing').length;
+  const completed = history.filter(t => t.status === 'completed').length;
+  const failed = history.filter(t => t.status === 'failed').length;
+  document.getElementById('tstat-all').textContent = all;
+  document.getElementById('tstat-processing').textContent = processing;
+  document.getElementById('tstat-completed').textContent = completed;
+  document.getElementById('tstat-failed').textContent = failed;
+
+  // Filter
+  const filtered = history.filter(t => {
+    if (currentTaskFilter === 'all') return true;
+    if (currentTaskFilter === 'processing') return t.status === 'pending' || t.status === 'processing';
+    return t.status === currentTaskFilter;
+  });
+
+  const listEl = document.getElementById('task-list');
+  const emptyEl = document.getElementById('task-list-empty');
+  if (!filtered.length) {
+    emptyEl.style.display = 'flex';
+    // Remove all cards
+    listEl.querySelectorAll('.task-card').forEach(c => c.remove());
+    return;
+  }
+  emptyEl.style.display = 'none';
+  listEl.querySelectorAll('.task-card').forEach(c => c.remove());
+  filtered.forEach((task, i) => {
+    const card = buildTaskCard(task);
+    card.style.animationDelay = `${i * 40}ms`;
+    listEl.appendChild(card);
+  });
+
+  // Auto-refresh processing tasks
+  if (taskRefreshInterval) clearInterval(taskRefreshInterval);
+  if (processing > 0) {
+    taskRefreshInterval = setInterval(async () => {
+      await refreshProcessingTasks();
+    }, 5000);
+  }
+}
+
+function buildTaskCard(task) {
+  const card = document.createElement('div');
+  card.className = 'task-card' + (task.id === currentTaskId ? ' selected' : '');
+  card.dataset.id = task.id;
+  card.onclick = () => { currentTaskId = task.id; fetchAndDisplayTask(task.id); document.querySelectorAll('.task-card').forEach(c => c.classList.remove('selected')); card.classList.add('selected'); };
+
+  const typeLabel = TASK_TYPE_MAP[task.task_type] || task.task_type;
+  const typeIcon  = TASK_TYPE_ICON[task.task_type]  || '📋';
+  const statusLabel = { pending:'⏳ 待处理', processing:'⏳ 处理中', completed:'✓ 已完成', failed:'✗ 失败' }[task.status] || task.status;
+
+  // Duration
+  let duration = '';
+  if (task.completed_at && task.created_at) {
+    const ms = new Date(task.completed_at) - new Date(task.created_at);
+    if (ms < 60000) duration = `${Math.round(ms/1000)}秒`;
+    else if (ms < 3600000) duration = `${Math.round(ms/60000)}分钟`;
+    else duration = `${(ms/3600000).toFixed(1)}小时`;
+  }
+
+  card.innerHTML = `
+    <div class="tc-icon ${task.task_type}">${typeIcon}</div>
+    <div class="tc-body">
+      <div class="tc-type-label ${task.task_type}">${typeLabel}</div>
+      <div class="tc-input">${escHtml(task.input || '—').substring(0, 60)}${(task.input||'').length > 60 ? '…' : ''}</div>
+      <div class="tc-time">${fmtDate(task.created_at)}</div>
+    </div>
+    <div class="tc-right">
+      <span class="tc-badge ${task.status}">${statusLabel}</span>
+      ${duration ? `<span class="tc-duration">耗时 ${duration}</span>` : ''}
+    </div>`;
+  return card;
+}
+
+function setTaskFilter(filter) {
+  currentTaskFilter = filter;
+  document.querySelectorAll('.task-tab').forEach(t => t.classList.toggle('active', t.dataset.filter === filter));
+  document.querySelectorAll('.tstat').forEach(s => s.classList.toggle('active', s.className.includes(filter)));
+  loadTasks();
+}
+
+async function refreshTasks() {
+  // Re-fetch all tasks from history that are still processing
+  const history = getTaskHistory();
+  const processing = history.filter(t => t.status === 'pending' || t.status === 'processing');
+  for (const t of processing) {
+    try {
+      const res = await fetch(API+`/api/v1/tasks/${t.id}`, { headers: headers() });
+      const data = await res.json();
+      if (res.ok) saveTaskToHistory(data);
+    } catch(e) {}
+  }
+  loadTasks();
+}
+
+async function refreshProcessingTasks() {
+  const history = getTaskHistory();
+  const processing = history.filter(t => t.status === 'pending' || t.status === 'processing');
+  for (const t of processing) {
+    try {
+      const res = await fetch(API+`/api/v1/tasks/${t.id}`, { headers: headers() });
+      const data = await res.json();
+      if (res.ok) saveTaskToHistory(data);
+    } catch(e) {}
+  }
+  loadTasks();
+}
+
+function closeTaskDetail() {
+  document.getElementById('task-result').style.display = 'none';
+  currentTaskId = null;
+  document.querySelectorAll('.task-card').forEach(c => c.classList.remove('selected'));
+}
+
+// ===== DISPLAY TASK (from API) =====
+async function fetchAndDisplayTask(taskId) {
+  try {
+    const res = await fetch(API+`/api/v1/tasks/${taskId}`, { headers: headers() });
+    const task = await res.json();
+    if (!res.ok) { showMsg('task-msg', 'error', task.error || '查询失败'); return; }
+    saveTaskToHistory(task);
+    renderTaskResult(task);
+    loadTasks();
+    if (task.status === 'pending' || task.status === 'processing') {
+      document.getElementById('poll-progress').style.display = 'block';
+      if (taskPollTimer) clearInterval(taskPollTimer);
+      taskPollTimer = setInterval(async () => {
+        try {
+          const r = await fetch(API+`/api/v1/tasks/${taskId}`, { headers: headers() });
+          const t = await r.json();
+          if (r.ok) { saveTaskToHistory(t); renderTaskResult(t); loadTasks(); }
+          if (t.status === 'completed' || t.status === 'failed') {
+            clearInterval(taskPollTimer);
+            document.getElementById('poll-progress').style.display = 'none';
+          }
+        } catch(e) {}
+      }, 2500);
+    } else {
+      document.getElementById('poll-progress').style.display = 'none';
+    }
+  } catch(e) { showMsg('task-msg', 'error', '✗ ' + e.message); }
+}
+
+function renderTaskResult(task) {
+  document.getElementById('task-result').style.display = 'block';
+  document.getElementById('td-panel-title').textContent = `任务 #${task.id}`;
+  document.getElementById('tr-id').textContent = task.id;
+  document.getElementById('tr-type').textContent = TASK_TYPE_MAP[task.task_type] || task.task_type;
+  document.getElementById('tr-created').textContent = fmtDate(task.created_at);
+  document.getElementById('tr-completed').textContent = task.completed_at ? fmtDate(task.completed_at) : '—';
+  document.getElementById('tr-input').textContent = task.input || '—';
+  document.getElementById('tr-output').textContent = task.output || (task.status === 'processing' || task.status === 'pending' ? '⏳ 等待处理...' : '（暂无输出）');
+  const badgeEl = document.getElementById('task-result-badge');
+  const statusMap = { pending:['badge-pending','⏳ 待处理'], processing:['badge-processing','⏳ 处理中'], completed:['badge-completed','✓ 已完成'], failed:['badge-failed','✗ 失败'] };
+  const [cls, label] = statusMap[task.status] || ['badge-pending', task.status];
+  badgeEl.className = 'badge ' + cls;
+  badgeEl.innerHTML = `<span class="badge-dot"></span>${label}`;
+  const errEl = document.getElementById('tr-error');
+  if (task.error_msg) { errEl.style.display = 'block'; errEl.textContent = '错误：' + task.error_msg; } else errEl.style.display = 'none';
+  document.getElementById('task-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+let editingCatId = null;
+function showAddCategory() { editingCatId = null; document.getElementById('category-panel-title').textContent = '新建分类'; document.getElementById('cat-name').value = ''; document.getElementById('cat-desc').value = ''; hideMsg('cat-msg'); document.getElementById('add-category-panel').style.display='block'; }
+function hideAddCategory() { document.getElementById('add-category-panel').style.display='none'; }
+function doSaveCategory() { const name = document.getElementById('cat-name').value.trim(); if (!name) return showMsg('cat-msg','error','请输入分类名称'); showMsg('cat-msg','info','保存中...'); setTimeout(() => { showMsg('cat-msg','success','✓ 保存成功！'); hideAddCategory(); loadCategories(); }, 500); }
+function loadCategories() {
+  const cats = JSON.parse(localStorage.getItem('leo_categories') || '[]');
+  const el = document.getElementById('cat-list-container');
+  document.getElementById('stat-categories').textContent = cats.length;
+  if (!cats.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📁</div><div class="empty-text">暂无分类，创建你的第一个分类吧</div></div>'; return; }
+  el.innerHTML = '<table class="data-table"><thead><tr><th>分类</th><th>操作</th></tr></thead><tbody>' + cats.map((c,i) => `<tr><td><div class="doc-title">${escHtml(c.name)}</div><div class="doc-meta">${escHtml(c.desc||'无描述')}</div></td><td style="white-space:nowrap;"><button class="btn btn-ghost btn-sm" onclick="editCategory(${i})" style="margin-right:4px;">编辑</button><button class="btn btn-danger btn-sm" onclick="deleteCategory(${i})">删除</button></td></tr>`).join('') + '</tbody></table>';
+}
+function editCategory(i) { const cats = JSON.parse(localStorage.getItem('leo_categories') || '[]'); const c = cats[i]; if (!c) return; editingCatId = i; document.getElementById('category-panel-title').textContent = '编辑分类'; document.getElementById('cat-name').value = c.name; document.getElementById('cat-desc').value = c.desc||''; hideMsg('cat-msg'); document.getElementById('add-category-panel').style.display='block'; }
+function deleteCategory(i) { const cats = JSON.parse(localStorage.getItem('leo_categories') || '[]'); cats.splice(i, 1); localStorage.setItem('leo_categories', JSON.stringify(cats)); loadCategories(); }
+
+function showAddTag() { document.getElementById('tag-name').value = ''; hideMsg('tag-msg'); document.getElementById('add-tag-panel').style.display='block'; }
+function hideAddTag() { document.getElementById('add-tag-panel').style.display='none'; }
+function doSaveTag() { const name = document.getElementById('tag-name').value.trim(); if (!name) return showMsg('tag-msg','error','请输入标签名称'); const tags = JSON.parse(localStorage.getItem('leo_tags') || '[]'); if (tags.some(t => t.name === name)) return showMsg('tag-msg','error','该标签已存在'); tags.push({ name, id: Date.now() }); localStorage.setItem('leo_tags', JSON.stringify(tags)); showMsg('tag-msg','success','✓ 保存成功！'); hideAddTag(); loadTags(); }
+function loadTags() {
+  const tags = JSON.parse(localStorage.getItem('leo_tags') || '[]');
+  const el = document.getElementById('tag-list-container');
+  if (!tags.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏷️</div><div class="empty-text">暂无标签，创建你的第一个标签吧</div></div>'; return; }
+  const tagColors = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#06b6d4','#10b981','#f97316','#3b82f6'];
+  el.innerHTML = '<div style="padding:16px;">' + tags.map((t,i) => `<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600;color:white;background:${tagColors[i%tagColors.length]}33;border:1px solid ${tagColors[i%tagColors.length]}66;margin:4px;">${escHtml(t.name)} <button onclick="deleteTag(${t.id})" style="background:none;border:none;color:currentColor;cursor:pointer;opacity:0.6;font-size:16px;line-height:1;padding:0;margin-left:2px;">×</button></span>`).join('') + '</div>';
+}
+function deleteTag(id) { const tags = JSON.parse(localStorage.getItem('leo_tags') || '[]'); localStorage.setItem('leo_tags', JSON.stringify(tags.filter(t => t.id !== id))); loadTags(); }
+
+function loadSettings() { const uid = localStorage.getItem('leo_user_id'); document.getElementById('set-user-id').value = uid || '—'; }
+function doSaveProfile() { showMsg('profile-msg','info','保存中...'); setTimeout(() => showMsg('profile-msg','success','✓ 保存成功！'), 600); }
+function doChangePassword() { const oldPwd = document.getElementById('set-old-pwd').value; const newPwd = document.getElementById('set-new-pwd').value; const confirm = document.getElementById('set-confirm-pwd').value; if (!oldPwd) return showMsg('pwd-msg','error','请输入当前密码'); if (!newPwd || newPwd.length < 6) return showMsg('pwd-msg','error','新密码至少6位'); if (newPwd !== confirm) return showMsg('pwd-msg','error','两次密码不一致'); showMsg('pwd-msg','info','修改中...'); setTimeout(() => showMsg('pwd-msg','success','✓ 密码修改成功！'), 800); }
+
+function fmtDate(str) { if (!str) return '—'; try { return new Date(str).toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch(e){return str;} }
+function escHtml(str) { if (!str) return ''; return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
+(function init() {
+  const uid = localStorage.getItem('leo_user_id');
+  const username = localStorage.getItem('leo_username') || '';
+  const subscription = localStorage.getItem('leo_subscription') || 'free';
+  const avatar = document.getElementById('userAvatar');
+  const topbarAvatar = document.getElementById('topbarAvatar');
+  const name = document.getElementById('userName');
+
+  if (uid) {
+    name.textContent = username || `用户 #${uid}`;
+    avatar.textContent = (username || `用户 #${uid}`).charAt(0).toUpperCase();
+    if (topbarAvatar) topbarAvatar.textContent = (username || `用户 #${uid}`).charAt(0).toUpperCase();
+  }
+
+  // Update plan badge and upgrade button
+  updatePlanUI(subscription);
+
+  document.getElementById('header-dashboard').style.display='flex';
+  loadDashboard();
+})();
+
+let selectedUpgradePlan = 'pro';
+
+function updatePlanUI(sub) {
+  const badge = document.getElementById('planBadge');
+  const upgradeBtn = document.getElementById('upgradeBtn');
+  const isPro = sub !== 'free';
+  badge.textContent = isPro ? '💎 Pro' : 'Free';
+  badge.className = 'plan-badge ' + (isPro ? 'pro' : 'free');
+  upgradeBtn.className = 'upgrade-btn' + (isPro ? '' : ' show');
+  const modalTag = document.getElementById('modalPlanTag');
+  if (modalTag) modalTag.textContent = '当前：' + (isPro ? 'Pro' : 'Free');
+}
+
+function openUpgradeModal() {
+  const sub = localStorage.getItem('leo_subscription') || 'free';
+  updatePlanUI(sub);
+  // Default selection
+  selectedUpgradePlan = 'pro';
+  updatePlanSwitcherUI();
+  document.getElementById('upgradeModal').classList.add('open');
+}
+
+function closeUpgradeModal() {
+  document.getElementById('upgradeModal').classList.remove('open');
+}
+
+function selectPlan(plan) {
+  selectedUpgradePlan = plan;
+  updatePlanSwitcherUI();
+}
+
+function updatePlanSwitcherUI() {
+  const chips = document.querySelectorAll('.pro-feature-chip');
+  chips.forEach(chip => {
+    const isSelected = chip.textContent.includes(selectedUpgradePlan === 'free' ? 'Free' : 'Pro');
+    chip.style.opacity = isSelected ? '1' : '0.5';
+    chip.style.transform = isSelected ? 'scale(1.02)' : 'scale(1)';
+  });
+  const btn = document.getElementById('confirmUpgradeBtn');
+  if (selectedUpgradePlan === 'free') {
+    btn.textContent = '✓ 当前已是 Free';
+    btn.className = 'btn-upgrade disabled';
+  } else {
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>立即升级 — $10 / 月';
+    btn.className = 'btn-upgrade';
+  }
+}
+
+function confirmUpgrade() {
+  if (selectedUpgradePlan === 'free') return;
+  const btn = document.getElementById('confirmUpgradeBtn');
+  btn.textContent = '⏳ 正在跳转支付...';
+  btn.className = 'btn-upgrade disabled';
+  // 支付功能暂未开放，2秒后显示提示
+  setTimeout(() => {
+    btn.textContent = '💳 支付功能暂未开放，敬请期待';
+    btn.className = 'btn-upgrade disabled';
+    // 3秒后自动关闭弹窗
+    setTimeout(() => {
+      closeUpgradeModal();
+      // 恢复按钮状态
+      setTimeout(() => {
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>立即升级 — $10 / 月';
+        btn.className = 'btn-upgrade';
+      }, 300);
+    }, 3000);
+  }, 1500);
+}
+
+function updateFeatureListUI(isPro) {
+  // Update the features shown when viewing task panel
+  const statProcessing = document.getElementById('stat-processing');
+  if (statProcessing) {
+    statProcessing.parentElement.style.background = isPro
+      ? 'linear-gradient(90deg,rgba(245,158,11,0.15),rgba(99,102,241,0.15))'
+      : statProcessing.parentElement.style.background || '';
+  }
+}
+</script>
+</body>
+</html>
